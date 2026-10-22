@@ -121,7 +121,7 @@ tickets or files. One line each:
 - **Draft PRs:** implementer `done`, with PR url.
 - **Partial / blocked / held:** implementer `partial`/`blocked`, triage `BLOCKED`/`HELD` (with the user's choice, if asked), with the draft PR url where there is one.
 - **Stacked:** each chain as `A → B → C` with PR urls, *chain stopped at <id>* where it stopped. Merge stacked PRs **in chain order**. Plus Step 0's `UNSTACK_CONFLICT` lines (need a manual merge of the default branch).
-- **Planned:** implementer `planned` → `/harness:plan-tickets <id>` to answer its questions and approve it.
+- **Planned:** implementer `planned` → `/harness:ticket <id>` to answer its questions and approve it.
 - **Needs info:** triage `NEEDS_INFO` plus implementer `needs-info` → `/harness:ticket <id>` answers the open questions and removes `needs-info`.
 - **Skipped:** triage `SKIPPED`.
 - **Not started (budget):** with `--budget N`, the eligible tickets (and chain remainders) never started.

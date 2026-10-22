@@ -34,7 +34,7 @@ history). Sections, in this order, omitting empty optional ones:
 A ticket without a clear problem and testable acceptance criteria is not ready.
 
 **Requirements are human-owned.** On an existing ticket, `## Problem`, `## Decision` and `## Acceptance criteria` change
-only through an interactive skill whose draft the human approves (`ticket`, `plan-tickets`, `answer-tickets`). Autonomous
+only through an interactive skill whose draft the human approves (`ticket`, `answer-tickets`). Autonomous
 agents (triager, implementer, verifier) write only `## Status`, `## Open questions`, `## Touches`, `## Plan`, `## Outcome`.
 If a requirement looks wrong, adjust the solution or go **needs-info** with an open question; never fit the requirement to
 the solution. Creating a new ticket writes all sections.

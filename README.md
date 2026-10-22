@@ -29,7 +29,7 @@ Skills and briefs resolve every overridable file through `harness-resolve`, so a
 
 ## Skills
 
-`init` · `doctor` · `ticket` · `plan-tickets` · `work-tickets` · `local-code-review` · `work-on-comments` · `verify` · `harness-retro` · `architecture-loop`
+`init` · `doctor` · `ticket` · `work-tickets` · `local-code-review` · `work-on-comments` · `verify` · `harness-retro` · `architecture-loop`
 Invoke as `/harness:<name>`.
 
 ## Platforms
