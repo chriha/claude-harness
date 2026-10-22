@@ -1,0 +1,28 @@
+#!/bin/sh
+#
+# Validate Conventional Commits. semantic-release reads these on `main` to derive
+# the version bump (feat→minor, fix→patch, `!` or BREAKING CHANGE→major), so a
+# malformed subject silently breaks releases. Catch it here, not in CI.
+#
+msg_file=$1
+header=$(head -n1 "$msg_file")
+
+# Skip generated/merge commits.
+case "$header" in
+    "Merge "*|"Revert \""*|"fixup! "*|"squash! "*) exit 0 ;;
+esac
+
+pattern='^(feat|fix|perf|refactor|docs|style|test|build|ci|chore|revert)(\([a-z0-9 ._/-]+\))?(!)?: .+'
+
+if printf '%s' "$header" | grep -Eq "$pattern"; then
+    exit 0
+fi
+
+echo "✗ Not a Conventional Commit:" >&2
+echo "    $header" >&2
+echo "" >&2
+echo "  Format:  <type>(<scope>)!: <subject>" >&2
+echo "  Example: feat(imports): route webhook imports through the orchestrator" >&2
+echo "  Types:   feat fix perf refactor docs style test build ci chore revert" >&2
+echo "  Note:    feat→minor, fix→patch, '!' / 'BREAKING CHANGE:'→major (semantic-release)." >&2
+exit 1

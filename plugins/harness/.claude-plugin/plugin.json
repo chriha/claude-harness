@@ -1,0 +1,5 @@
+{
+  "name": "harness",
+  "description": "Ticket -> plan -> implement -> review pipeline for any repo. Project config in .claude/harness.md, overrides in .claude/harness/.",
+  "author": { "name": "Christopher Hartmann" }
+}

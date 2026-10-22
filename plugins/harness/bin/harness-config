@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# harness-config key <name>      — value of the first `name: value` line of <repo>/.claude/harness.md
+# harness-config section <title> — body of the `## <title>` section
+# Missing file/key/section → empty output, exit 0.
+set -euo pipefail
+mode="${1:?usage: harness-config key <name> | section <title>}"; arg="${2:?missing name/title}"
+common="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" || exit 0
+repo="$(dirname "$common")"
+f="$repo/.claude/harness.md"
+[ -f "$f" ] || exit 0
+case "$mode" in
+    key) awk -v k="$arg" 'index($0, k ":")==1 { sub(/^[^:]*:[ \t]*/, ""); print; exit }' "$f" ;;
+    section) awk -v t="$arg" '/^## /{on = ($0 == "## " t); next} on' "$f" ;;
+    *) echo "usage: harness-config key <name> | section <title>" >&2; exit 2 ;;
+esac

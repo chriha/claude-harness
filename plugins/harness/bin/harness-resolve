@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# harness-resolve <relpath> — abs path of <repo>/.claude/harness/<relpath> if it exists, else <plugin>/<relpath>.
+set -euo pipefail
+rel="${1:?usage: harness-resolve <relpath>}"
+plugin="$(cd "$(dirname "$0")/.." && pwd)"
+common="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" || common=""
+repo="${common:+$(dirname "$common")}"
+if [ -n "$repo" ] && [ -f "$repo/.claude/harness/$rel" ]; then echo "$repo/.claude/harness/$rel"
+elif [ -f "$plugin/$rel" ]; then echo "$plugin/$rel"
+else echo "harness-resolve: $rel not found" >&2; exit 1; fi

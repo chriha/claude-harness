@@ -1,0 +1,56 @@
+#!/bin/sh
+#
+# Pre-commit: block commits on main, auto-format staged PHP with Pint (+ PHPCBF when installed),
+# then lint with PHPCS when the project has a phpcs.xml. Every tool is optional; missing ones are skipped.
+# Enable with: scripts/setup-hooks.sh  (sets core.hooksPath=.githooks)
+#
+set -e
+
+# main only moves through pull/merge requests. Merge commits (a conflicting `git pull`) are the exception.
+# Escape hatch: --no-verify.
+if [ "$(git branch --show-current)" = "main" ] && [ ! -f "$(git rev-parse --git-dir)/MERGE_HEAD" ]; then
+    echo "✗ Refusing to commit on main." >&2
+    echo "  Branch first:  git switch -c <type>/<ticket>-short-desc" >&2
+    echo "  Carry staged work over:  git stash && git switch -c <branch> && git stash pop" >&2
+    exit 1
+fi
+
+# Real PHP only — Pint/PHPCS don't lint *.blade.php.
+files=$(git diff --cached --name-only --diff-filter=ACMR -- '*.php' ':(exclude)*.blade.php')
+[ -z "$files" ] && exit 0
+
+if [ ! -x vendor/bin/pint ]; then
+    echo "⚠ Pint not found — run 'composer install'. Skipping format/lint." >&2
+    exit 0
+fi
+
+# 1. Auto-fix staged files, then re-stage them. (tr→xargs -0 keeps spaces in paths safe.)
+#    PHPCBF exits non-zero even when it fixed files, so guard it from `set -e`.
+printf '%s\n' "$files" | tr '\n' '\0' | xargs -0 vendor/bin/pint --quiet
+if [ -x vendor/bin/phpcbf ]; then
+    printf '%s\n' "$files" | tr '\n' '\0' | xargs -0 vendor/bin/phpcbf >/dev/null 2>&1 || true
+fi
+printf '%s\n' "$files" | tr '\n' '\0' | xargs -0 git add
+echo "✓ Staged PHP auto-fixed."
+
+# 2. PHPCS with the CI ruleset (phpcs.xml auto-discovered). Exit 16 = every staged file is outside its scope
+#    (e.g. a migration-only commit) — not a failure. Called directly, not via xargs, which remaps failures to 123.
+[ -x vendor/bin/phpcs ] && { [ -f phpcs.xml ] || [ -f phpcs.xml.dist ]; } || exit 0
+
+oldifs=$IFS
+IFS='
+'
+set -- $files
+IFS=$oldifs
+
+status=0
+report=$(vendor/bin/phpcs "$@" 2>&1) || status=$?
+[ "$status" -ne 16 ] && printf '%s\n' "$report"
+
+if [ "$status" -ne 0 ] && [ "$status" -ne 16 ]; then
+    echo "" >&2
+    echo "✗ PHPCS found violations that can't be auto-fixed (see report above). Fix, re-stage, commit." >&2
+    exit 1
+fi
+echo "✓ PHPCS passed."
+exit 0
