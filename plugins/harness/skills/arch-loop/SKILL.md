@@ -1,6 +1,6 @@
 ---
-name: architecture-loop
-description: Detect architecture drift — scan domains for rule violations, triage signals into tickets, write acceptance criteria, optionally hand them to /harness:work-tickets
+name: arch-loop
+description: Detect architecture drift — scan domains for rule violations, triage signals into tickets, write acceptance criteria, optionally hand them to /harness:work
 argument-hint: "[domain-slug | path] [--budget N] [--handoff]"
 disable-model-invocation: true
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, AskUserQuestion, Bash(grep:*), Bash(ls:*), Bash(cat:*), Bash(find:*), Bash(mkdir:*), Bash(rm:*), Bash(harness-*:*), Bash(gh issue:*), Bash(gh label:*), mcp__codegraph__codegraph_explore
@@ -17,7 +17,7 @@ Pipeline: `signal → ticket → PR → outcome`.
 `targets:` (below).
 
 **Everything this skill creates is labeled `triage` and unassigned — never further.** It detects and plans; a **human** curates the
-triage inbox (removes `triage`, assigns to themself) and only then `/harness:work-tickets` picks it up. The one exception is `--handoff` (Step 4).
+triage inbox (removes `triage`, assigns to themself) and only then `/harness:work` picks it up. The one exception is `--handoff` (Step 4).
 
 | Loop concept | Ticket | Set by |
 |--------------|--------|--------|
@@ -25,7 +25,7 @@ triage inbox (removes `triage`, assigns to themself) and only then `/harness:wor
 | signal (dismissed) | closed *not planned* (or duplicate, linked) + one-line reason `comment` | this skill |
 | ticket (planned, awaiting review) | `arch-loop` + `triage` + `improvement`, has `## Problem` + `## Acceptance criteria` | this skill |
 | ticket (accepted) | `triage` removed, assigned to the human | **a human** (or `--handoff`) |
-| in progress → PR → merged | per adapter (`in-flight`, closing keyword) | `/harness:work-tickets`; no loop agent sets these |
+| in progress → PR → merged | per adapter (`in-flight`, closing keyword) | `/harness:work`; no loop agent sets these |
 | outcome (decision record) | `## Outcome` in the description | the implementer, on `done` |
 
 **Priority/severity is capped at medium.** Arch-loop tickets are tech debt, never bugs: no `bug` label, no urgent/high priority; signal
@@ -97,7 +97,7 @@ Summarize with ids (`<id>` + one line), not bodies: domains scanned; new signals
 tickets now `triage` awaiting acceptance (id, priority, one line, url).
 
 **Default:** stop. End with: **"Filed as `triage`. Review the `arch-loop` + `triage` tickets, remove `triage` and assign accepted ones to
-yourself — `/harness:work-tickets` picks them up."** Do not run work-tickets, remove `triage`, or close tickets yourself.
+yourself — `/harness:work` picks them up."** Do not run work, remove `triage`, or close tickets yourself.
 
-**`--handoff`:** for each planned ticket `remove-label triage`, assign to me, then invoke `/harness:work-tickets <id> <id> …` in this session
+**`--handoff`:** for each planned ticket `remove-label triage`, assign to me, then invoke `/harness:work <id> <id> …` in this session
 (`Skill`). It gates, plans or implements each ticket and opens draft PRs — handing off skips none of *its* checkpoints. Relay its report.

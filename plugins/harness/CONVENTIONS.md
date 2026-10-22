@@ -35,5 +35,5 @@ Terse imperative briefs, no prose padding. Orchestrators stay thin (route only).
 Skills are named without prefix; the plugin namespace gives `/harness:<name>`.
 
 ## Optional harness.md keys/sections used by specific skills
-`## Verify` (verify, see its header) · `## Ratchets` (`name: command printing a number`, harness-retro) · `arch_test:` (architecture-loop) ·
+`## Verify` (verify, see its header) · `## Ratchets` (`name: command printing a number`, harness-retro) · `arch_test:` (arch-loop) ·
 `metrics_doc:` (default `docs/harness-metrics.md`) · `sentry: true`. Optional project file `.claude/harness/architecture-domains.md`.

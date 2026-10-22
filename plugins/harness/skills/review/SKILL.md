@@ -1,12 +1,12 @@
 ---
-name: local-code-review
+name: review
 description: Code review the locally checked out branch, a PR, a branch or a path
 argument-hint: "[pr#|branch|path] [--comment] [--fix]"
 disable-model-invocation: true
 allowed-tools: Read, Grep, Glob, Agent, AskUserQuestion, Bash(harness-*:*), Bash(git log:*), Bash(git diff:*), Bash(git remote:*), Bash(git branch:*), Bash(git status:*), Bash(git add:*), Bash(git commit:*), Bash(git fetch:*), Bash(git worktree:*), Bash(git push:*), Bash(git rev-parse:*), Bash(git -C:*), Bash(jq:*), Bash(gh pr:*), Bash(gh api:*), Bash(gh issue:*), mcp__codegraph__codegraph_explore
 ---
 
-Usage: `/harness:local-code-review [pr#|branch|path] [--comment] [--fix]`
+Usage: `/harness:review [pr#|branch|path] [--comment] [--fix]`
 
 Operations (`view-pr`, `pr-diff`, `comment-pr`, `ticket-of-pr`, …) come from the forge/tracker adapter named in `.claude/harness.md` §
 Tracker (`harness-resolve adapters/<name>.md`). Criteria: `harness-resolve briefs/review-criteria.md`. Project checks: harness.md §

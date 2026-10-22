@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prints the /work-tickets triage facts as JSON.
+"""Prints the /work triage facts as JSON.
 
 Usage: harness-candidates "[12>15 20 -37]"   (run inside the repo; needs an authenticated `gh`)
        harness-candidates --self-test

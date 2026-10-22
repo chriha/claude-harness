@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Step 0 of /work-tickets: fetch/prune, clean merged or deleted worktrees, unstack PRs whose base merged,
+# Step 0 of /work: fetch/prune, clean merged or deleted worktrees, unstack PRs whose base merged,
 # refresh the _main reference worktree. Safe to run standalone and repeatedly. Run from inside the repo.
 # Output: `issue-nnn merged|closed|deleted` (cleaned), `UNSTACKED: <url>`, `UNSTACK_CONFLICT: <url> [(reason)]`.
 #

@@ -1,4 +1,4 @@
-# Verifier brief (/harness:work-tickets)
+# Verifier brief (/harness:work)
 
 Your prompt gives the finding's short title, the source ticket `<id>`, `<repo>`, `<wt>`, `<report>` (full text under
 `## Findings`) and the titles of findings already in flight. Follow `tickets.md` + the adapter (`harness-resolve …`).

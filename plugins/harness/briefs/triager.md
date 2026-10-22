@@ -1,4 +1,4 @@
-# Triager brief (/harness:work-tickets)
+# Triager brief (/harness:work)
 
 Your prompt gives `<repo>` and the argument (ticket ids, chains and `-id` exclusions, verbatim, or none). Read-only on code
 and git. Your only tracker writes are the `needs-info` ones below. Shape and operations: `tickets.md` and the adapter next to it

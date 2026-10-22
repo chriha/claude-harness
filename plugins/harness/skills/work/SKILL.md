@@ -1,5 +1,5 @@
 ---
-name: work-tickets
+name: work
 description: Work my open tickets — a triager gates them, sub-agents fix each in its own worktree and open a draft PR (or plan it, if risky), and verified side findings land in triage
 argument-hint: "[ids | A>B chains | -id | --budget N | --no-verify | --allow-external-apis | --dry-run]"
 disable-model-invocation: true
@@ -42,7 +42,7 @@ Orchestrator rules:
 - All sub-agents use `subagent_type: "general-purpose"` and `run_in_background: true`; wait for notifications, don't poll.
 
 Argument (optional):
-- **Ticket ids** (e.g. `/harness:work-tickets 812 815`; `#812` works too) → exactly those, in parallel, skipping the assignee filter
+- **Ticket ids** (e.g. `/harness:work 812 815`; `#812` works too) → exactly those, in parallel, skipping the assignee filter
   (skip/blocked checks still apply). A ticket with an open PR **continues** on it.
 - **Chains** (e.g. `812>815 820`) → `>` works tickets **one after another**, each **stacked** on the previous one's branch (see
   *Chains*). Space-separated groups still run in parallel.
@@ -128,5 +128,5 @@ tickets or files. One line each:
 - **New triage tickets:** verifier `confirmed` (id + url), plus a one-line duplicate/invalid tally.
 - Worktrees still around: one `git worktree list`.
 
-End with: **"Draft PRs are open (base `<base-sha>`). Check CI, review, and mark them ready yourself. The next `/harness:work-tickets`
+End with: **"Draft PRs are open (base `<base-sha>`). Check CI, review, and mark them ready yourself. The next `/harness:work`
 run cleans up worktrees for merged/closed PRs."**

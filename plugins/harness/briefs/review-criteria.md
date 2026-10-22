@@ -1,6 +1,6 @@
 # Review criteria (shared)
 
-Single source for rules-compliance and test-quality review. Used by `local-code-review` (agents 1, 2, 4, validation) and
+Single source for rules-compliance and test-quality review. Used by `review` (agents 1, 2, 4, validation) and
 the implementer's Review step. Project specifics: harness.md § Test conventions.
 
 ## Rules compliance (CLAUDE.md and `.claude/rules/*`)

@@ -2,7 +2,7 @@
 
 Platform commands live in the **adapter** (`harness-resolve adapters/<tracker>.md`, tracker from harness.md § Tracker).
 Below, operations are named in `code style` — look them up there. Tickets are referenced as the adapter says (`#nnn`, `EQD-nnn`, …).
-`/harness:work-tickets` works the open tickets **assigned to me**. A PR closes its ticket through the adapter's closing
+`/harness:work` works the open tickets **assigned to me**. A PR closes its ticket through the adapter's closing
 keyword — **no agent ever closes a ticket or changes its assignee/status.**
 
 Labels (names per adapter) that steer the pipeline:
@@ -74,7 +74,7 @@ when the legacy side goes.
 
 A hit = a ticket that is in-flight or plan-approved and touches the same code. What happens on a hit is up to the caller.
 
-## Harness harvest (`work-on-comments`, `local-code-review --fix`)
+## Harness harvest (`work-on-comments`, `review --fix`)
 
 Turns review corrections into guardrails. Input: the comments resolved / findings applied in this run.
 

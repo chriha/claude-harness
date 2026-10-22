@@ -1,4 +1,4 @@
-# Implementer brief (/harness:work-tickets)
+# Implementer brief (/harness:work)
 
 Your prompt gives `<id>`, `<repo>`, `<wt>`, `<branch>`, `<report>`, `<base>` (default branch, or the branch this ticket is
 **stacked** on — then also `<base-wt>` and the base PR url), the PR url when continuing, `plan approved` when set, and the flags

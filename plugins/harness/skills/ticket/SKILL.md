@@ -1,13 +1,13 @@
 ---
 name: ticket
-description: Report a bug, change request or feature and file it as a ready ticket for /harness:work-tickets — or pass a ticket id to answer a needs-info ticket's open questions / finalize and approve a planning ticket's plan
+description: Report a bug, change request or feature and file it as a ready ticket for /harness:work — or pass a ticket id to answer a needs-info ticket's open questions / finalize and approve a planning ticket's plan
 argument-hint: "[free text | ticket id]"
 disable-model-invocation: true
 allowed-tools: Read, Grep, Glob, AskUserQuestion, Bash(ls:*), Bash(cat:*), Bash(grep:*), Bash(find:*), Bash(date:*), Bash(harness-*:*), Bash(gh issue:*), Bash(gh pr list:*), Bash(gh api:*), Bash(gh label:*), mcp__codegraph__codegraph_explore
 ---
 
 Turn something the human reports — a **bug**, a **change request** or a **new feature** — into an actionable ticket that
-`/harness:work-tickets` picks up. Ticket shape, labels, collision check: `harness-resolve briefs/tickets.md`. Operations
+`/harness:work` picks up. Ticket shape, labels, collision check: `harness-resolve briefs/tickets.md`. Operations
 (`read-ticket`, `create-ticket`, …): the adapter named in `.claude/harness.md` § Tracker (`harness-resolve adapters/<tracker>.md`).
 Plan-first criteria and plan format: `harness-resolve briefs/implementer.md` ("Gate first", "Planning") plus harness.md § Plan-first triggers.
 
@@ -36,14 +36,14 @@ Argument:
 - Re-check the plan-first criteria and run the collision check (Step 1). Plan-first now applies → add a `## Plan` as in Step 3.
 - Show the draft; ask once: **"Update this ticket?"** — `Update (Recommended)` / `Adjust`.
 - Then `edit-description`, `remove-label needs-info` (+ `blockers-add` for collision hits, `Related:` lines under `## Reference`),
-  `## Status` = `Ready for /harness:work-tickets.`, a `Changed` comment. Report id + url; mention tickets that reference this one
+  `## Status` = `Ready for /harness:work.`, a `Changed` comment. Report id + url; mention tickets that reference this one
   and may now be unblocked (`search-tickets` on the id).
 
-End with: **"Ready — `/harness:work-tickets <id>` will pick it up."**
+End with: **"Ready — `/harness:work <id>` will pick it up."**
 
 ## Plan mode — finalize a `planning` ticket's plan
 
-Finalize the plan of one big ticket with the human, then approve it so `/harness:work-tickets` implements it.
+Finalize the plan of one big ticket with the human, then approve it so `/harness:work` implements it.
 
 - The ticket must be open, labeled `planning` and have a plan (`## Plan`, or an old plan comment — fold it, `tickets.md`). Otherwise say what it is and stop: `needs-info` → resume mode; no plan/no `planning` → nothing to plan.
 - Background: an implementer that hits a plan-first trigger doesn't code. It writes `## Plan` (marker `<!-- work-tickets plan -->`;
@@ -88,14 +88,14 @@ Rewrite `## Plan` via `edit-description` (keep marker and format):
 - **Split** (if chosen): `create-ticket` for each carved-out slice (assignee me, type label, normal shape, `## Reference` back to this
   ticket, `blockers-add` if it must land after); several slices → its own approved `## Plan` (no `planning`). Remove moved slices here.
 
-Show the updated `### PRs`; ask once: **"Approve this plan for /harness:work-tickets?"** — `Approve (Recommended)` / `Adjust`.
+Show the updated `### PRs`; ask once: **"Approve this plan for /harness:work?"** — `Approve (Recommended)` / `Adjust`.
 
 ### P4 — Approve & report
 
-- `## Status` (plan approved — next: first unshipped slice via `/harness:work-tickets`), `Changed` comment, `remove-label planning`.
+- `## Status` (plan approved — next: first unshipped slice via `/harness:work`), `Changed` comment, `remove-label planning`.
 - Report: id + title, decisions (one line each), final slice and file count, split-off tickets, how many of my tickets remain `planning`.
 
-End with: **"Approved — `/harness:work-tickets <id>` will implement the first slice."**
+End with: **"Approved — `/harness:work <id>` will implement the first slice."**
 
 ## Step 1 — Investigate (report flow)
 
@@ -127,7 +127,7 @@ Restate the problem in 2–3 lines, checked against the code/docs (file:line); h
 
 ```
 ## Status
-Ready for /harness:work-tickets. (needs-info: Waiting on the human to answer `## Open questions`.)
+Ready for /harness:work. (needs-info: Waiting on the human to answer `## Open questions`.)
 
 ## Problem
 <1–5 sentences: what happens vs. what should, with file:line evidence; for features: what's missing and why>
@@ -161,4 +161,4 @@ Show title, body (and plan); ask once: **"File this ticket?"** — `File (Recomm
 - Plan-first → the plan is in the description **without** the `planning` label — it's approved.
 - Report: id + url, title, label, criteria count, file estimate.
 
-End with: **"Ready — `/harness:work-tickets <id>` will pick it up."** (needs-info: **"Filed — answer it with `/harness:ticket <id>`."**)
+End with: **"Ready — `/harness:work <id>` will pick it up."** (needs-info: **"Filed — answer it with `/harness:ticket <id>`."**)

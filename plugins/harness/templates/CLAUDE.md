@@ -15,5 +15,5 @@
 - Branches: `<type>/<id>-<slug>`; Conventional Commits; PRs closed via the tracker's closing keyword. Agents open drafts and never merge or mark ready.
 
 ## Agent workflow
-Ticket pipeline via the `harness` plugin: `/harness:ticket`, `/harness:work-tickets`, `/harness:local-code-review`, `/harness:work-on-comments`.
+Ticket pipeline via the `harness` plugin: `/harness:ticket`, `/harness:work`, `/harness:review`, `/harness:work-on-comments`.
 Project config: `.claude/harness.md`; overrides: `.claude/harness/`.

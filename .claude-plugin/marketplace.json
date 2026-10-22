@@ -6,7 +6,7 @@
   "plugins": [
     {
       "name": "harness",
-      "description": "Ticket pipeline (/harness:work-tickets, /harness:ticket, /harness:local-code-review, ...) with per-project overrides, stack packs and adapters.",
+      "description": "Ticket pipeline (/harness:work, /harness:ticket, /harness:review, ...) with per-project overrides, stack packs and adapters.",
       "source": "./plugins/harness",
       "category": "productivity"
     }
