@@ -147,7 +147,7 @@ done | partial | blocked | planned | needs-info
 <problems outside this ticket's scope, one per line: `- **<short title>** — file:line — what you saw vs. what you expected`. "none" if nothing. Don't fix them.>
 ```
 
-- **done** → never close the ticket (the PR's closing keyword does it on merge). Update `## Status` (PR url, awaiting review) and mark
+- **done** → never close the ticket (the last slice's PR closing keyword does it on merge). Update `## Status` (PR url, awaiting review) and mark
   the shipped slice in `## Plan` with the PR url. If the ticket asks for a decision record, write `## Outcome`: **Decision**
   (what the PR does), **Consequences** (trade-offs, follow-ups), **Rules touched** (`CLAUDE.md` / `.claude/rules/*` / harness changes, or
   "none"), **PR** (url). Then a `Changed` comment.
