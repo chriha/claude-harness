@@ -84,9 +84,16 @@ Turns review corrections into guardrails. Input: the comments resolved / finding
    - **judgment** — nothing to change; creates nothing.
 2. **Group** mechanizable/instructable items into one pattern each. No patterns → stop. Stable lowercase key
    `<guardrail-type>:<area>` (e.g. `mechanizable:session-layering`); reuse the key of an existing `agent-harness` ticket on match.
-3. **Dedupe:** `harness-issues` by key (triage ones included); if nothing, retry with the pattern keywords. A duplicate gets a
-   `comment` with the new evidence, not a new ticket.
-4. **Confirm once:** one `AskUserQuestion` listing every new ticket and every duplicate comment. File nothing without approval.
+   **Target** per pattern — where the guardrail would live:
+   - **plugin** — a plugin file (skill, brief, adapter, `bin/` script, pack, template) the project doesn't override
+     (`harness-resolve <path>` prints a path outside `<repo>`). Filed in the plugin repo **`chriha/claude-harness`** on GitHub,
+     whatever the project's tracker: run the GitHub adapter's operations with `-R chriha/claude-harness`.
+   - **project** — everything else (`CLAUDE.md`, `.claude/rules/*`, `.claude/harness.md`, a `.claude/harness/` override, a
+     test/lint/CI check in the repo). Filed via the project's tracker adapter.
+3. **Dedupe:** `harness-issues` by key (triage ones included) in the target's tracker; if nothing, retry with the pattern keywords.
+   A duplicate gets a `comment` with the new evidence, not a new ticket.
+4. **Confirm once:** one `AskUserQuestion` listing every new ticket and every duplicate comment with its target. File nothing without approval.
 5. **File** each approved pattern: `create-ticket` with labels `agent-harness` + `triage`, unassigned, no priority. Body:
    `Key: <key>`, `## Status` (triage, filed from review), `## Problem` (evidence, file:line), the proposed guardrail (which
-   rule file / test / brief), `## Acceptance criteria`.
+   rule file / test / brief), `## Acceptance criteria`. **Plugin target: the repo is public** — evidence is plugin file:line plus
+   a generic description of what went wrong; no project code, names, paths, URLs or ticket links.
