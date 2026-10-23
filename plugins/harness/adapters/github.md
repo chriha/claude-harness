@@ -2,6 +2,7 @@
 
 Tracker **and** forge. `<n>` = issue/PR number, referenced as `#<n>`. Ticket id regex: `#?(\d+)`. Worktree name: `issue-<n>`.
 Closing keyword: `Closes #<n>` in the PR description (GitHub closes the ticket when the PR reaches the default branch).
+Reference form (non-final slice of a multi-PR plan, must not close the ticket): `Refs #<n>`.
 Branch ↔ ticket: branch `<type>/<n>-<slug>`; the leading number after `<type>/` is the ticket.
 
 ## Tracker operations
