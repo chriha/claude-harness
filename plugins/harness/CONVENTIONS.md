@@ -10,11 +10,11 @@ Resolution is always done with the `harness-resolve` command (in `bin/`, on PATH
 Skills and briefs never hardcode `${CLAUDE_PLUGIN_ROOT}` paths for files that can be overridden; they say "resolve `briefs/x.md`".
 Sub-agent prompts get the **resolved absolute path** ("Read and follow `<abs path>`").
 
-## harness.md (project config, markdown; scripts read `key: value` lines)
+## harness.md (project config, markdown; scripts read `key: value` lines — `harness-config key` drops a trailing `<!-- -->` and wrapping backticks)
 Sections the briefs refer to by name — keep these headings:
 - `## Tracker` — `tracker: github` · `forge: github` · adapter names resolve to `adapters/<name>.md`; labels in use; priority label scheme.
 - `## Commands` — `test:`, `static:` (lint/static analysis, may be empty), `format:` (check cmd, must print nothing/exit 0), `build:`, `setup-worktree:` (run once in a fresh worktree, may be empty), `test-affected:` (how to run a subset; `{files}` placeholder).
-- `## Scripts` — `red_check_test_cmd:`, `test_file_glob:` (git pathspec, e.g. `**/*_test.go`), `exclude_from_size:` (pathspecs excluded from the changed-line count).
+- `## Scripts` — `red_check_test_cmd:` (`{files}`/`{packages}` placeholders), `test_file_glob:` (git pathspec, e.g. `**/*_test.go`), `exclude_from_size:` (pathspecs excluded from the changed-line count).
 - `## Branch & commits` — branch types, branch regex, commit types, max subject length, whether a ticket id goes in the commit subject, `Co-Authored-By` line.
 - `## Plan-first triggers` — project-specific list that extends the generic gate in `briefs/implementer.md`.
 - `## Self-check` — project-specific "no X" list run before each commit.

@@ -55,7 +55,7 @@ before writing. Only interactive skills may rewrite the human-owned sections.
 folds only into its own sections; what belongs in a human-owned section stays in its comment (still read as context).
 
 **Blockers** are tracker dependencies (`blockers-read` / `blockers-add`); "related" is `Related: <id>` under `## Reference`.
-**Every PR needs a ticket:** its description contains the closing keyword, its branch/title carries the id as the adapter says.
+**Every PR needs a ticket:** its description contains the closing keyword (non-final plan slice: the adapter's reference form), its branch/title carries the id as the adapter says.
 
 ## In-flight work & the collision check
 

@@ -9,10 +9,10 @@ allowed-tools: Read, Grep, Glob, Agent, SendMessage, AskUserQuestion, Bash(ls:*)
 Work the tickets **assigned to me** that are open in this repository. Setup check first: `<repo>/.claude/harness.md` must exist
 (else tell me to run `/harness:init` and stop). Ticket shape, labels and operations: `harness-resolve briefs/tickets.md` and the
 adapter named in harness.md § Tracker (`harness-resolve adapters/<tracker>.md`). One branch and one **draft** PR per ticket against the default
-branch (or its chain base). The PR's closing keyword closes the ticket on merge — nobody closes or reassigns a ticket.
+branch (or its chain base). The PR's closing keyword (last plan slice only; earlier slices use the reference form) closes the ticket on merge — nobody closes or reassigns a ticket.
 
 **Definition of done:** a draft PR whose title is the first commit's subject, whose description is the project's PR template
-(or the default in the implementer brief) filled in concisely and carries the closing keyword, whose tests fail without the fix
+(or the default in the implementer brief) filled in concisely and carries the closing keyword (or the reference form for a non-final slice), whose tests fail without the fix
 and pass with it, and whose code passes harness.md § Commands. **The PR stays draft** — you mark it ready.
 
 Paths: `<repo>` is the main checkout (absolute), `<wt>` is `<repo>/.user/worktrees/issue-<nnn>`, `<report>` is

@@ -57,6 +57,10 @@ It fetches `origin/<base>`, adds the worktree (new branch from `origin/<base>`, 
   diff, green with it; it restores the tree itself, no stash). Paste its output into `## Tests`. Exit 1 = test can't fail, 2 = not
   green with the fix, 3 = no test changes, 4 = setup error/dirty tree, 5 = red from a compile/setup error, not a failing test: fix and
   rerun. "No behaviour change" PRs are exempt — say so in `## Tests`.
+  - **New identifiers** (tests call functions/types/fields the diff adds, so the red run cannot compile): first commit only the
+    stubs — the new identifiers with stubbed behaviour (zero values / "not implemented" errors), compiling, no tests — then the tests
+    and the real code in later commits. Run `harness-red-check <wt> <base> <stub-commit sha>`: the red run keeps the stubs and drops
+    only what came after them. Name the stub commit in `## Tests`. A stub that already makes the tests pass exits 1.
 - **Checks** — same as CI, green before every commit: harness.md § Commands `test`, `static`, `format`, `build` (empty = skip).
   Fix new findings in the code — no suppression comments, no skipped tests, no baseline/exclusion entries, no widened types to
   silence a tool. A baseline entry your fix resolved → delete it. Only format the files you changed.
@@ -94,7 +98,8 @@ It fetches `origin/<base>`, adds the worktree (new branch from `origin/<base>`, 
   - **Description** — the repo's `pr-template` when there is one, filled in, nothing added beyond it. Otherwise (stacked: first line
     `> Stacked on <base PR url> — merge that first.`): `## What` (1–3 concise sentences) · `## Acceptance criteria` (one line each,
     with how it's met) · `## Tests` (commands + result; the red-check line for behaviour changes) · the adapter's closing keyword
-    (a stacked PR whose base is not the default branch also gets it) · end with `🤖 Generated with [Claude Code](https://claude.com/claude-code)`.
+    (a stacked PR whose base is not the default branch also gets it). **Multi-slice ticket** (`## Plan` has several PRs): only the
+    last slice's PR carries the closing keyword; earlier slices carry the adapter's reference form instead (GitHub: `Refs #<n>`) · end with `🤖 Generated with [Claude Code](https://claude.com/claude-code)`.
 
 ## Planning — no code changes, commits, push or PR
 
