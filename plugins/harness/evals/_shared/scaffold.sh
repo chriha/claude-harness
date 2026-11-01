@@ -4,6 +4,8 @@
 # .harness-eval/ (git-excluded) with the case's fixtures, the fake gh, gh.log and bodies/; and a PATH that puts the fake gh
 # first. Fails if any other gh or harness-resolve would win on that PATH. Both ablation arms get that PATH (bin/ and the
 # briefs it resolves), so a no-plugin arm says nothing: run the suite with --ablation none.
+# <case>/setup.sh, when present, then runs in the run dir (extra branches, worktrees, reports). After it, every ref update
+# in the repo (commit, checkout, branch, remote-tracking) is appended to .harness-eval/git.log as "<old> <new> <ref>".
 set -euo pipefail
 case_dir="$(cd "${1:?usage: scaffold.sh <case dir>}" && pwd)"
 shared="$(cd "$(dirname "$0")" && pwd)"
@@ -47,3 +49,12 @@ if [ "$(PATH="$prefix:$PATH" command -v harness-resolve)" != "$plugin_bin/harnes
     echo "scaffold: harness-resolve does not come from the plugin under test" >&2; exit 1
 fi
 printf '.harness-eval/\n' >> .git/info/exclude
+
+if [ -f "$case_dir/setup.sh" ]; then bash "$case_dir/setup.sh"; fi
+# git.log: the repo's own hooks dir (a global core.hooksPath would hide it), set up after the case setup so it stays empty
+# until the agent changes a ref (no-op deletions such as AUTO_MERGE are skipped).
+mkdir -p "$ev/hooks"
+printf '#!/bin/sh\n[ "$1" = committed ] || exit 0\nawk '\''$1 != $2'\'' >> %q\n' "$ev/git.log" > "$ev/hooks/reference-transaction"
+chmod +x "$ev/hooks/reference-transaction"
+git config core.hooksPath "$ev/hooks"
+: > "$ev/git.log"
