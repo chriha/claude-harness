@@ -5,11 +5,16 @@ One Claude Code plugin that gives any repo the same ticket → plan → implemen
 ## Install (once, user scope)
 
 ```
-/plugin marketplace add /Users/chris/Development/projects/claude-harness
-/plugin install harness@chris-harness
+/plugin marketplace add chriha/claude-harness
+/plugin install harness@chriha
 ```
-Local-directory plugin: edits are live at the next session start or `/reload-plugins`. Once pushed to a git remote, use that URL
-instead; then `claude plugin update harness` pulls new versions (bump `version` in `plugin.json`, or omit it to follow commit SHAs).
+Or from a shell: `claude plugin marketplace add chriha/claude-harness && claude plugin install harness@chriha`.
+
+Update with `/plugin marketplace update chriha` followed by `claude plugin update harness`. There's no `version` in `plugin.json`,
+so updates track commit SHAs. Add a `version` there if you'd rather release explicitly.
+
+**Developing the plugin:** to have local edits apply at the next session start or `/reload-plugins`, add your clone as the marketplace
+instead: `/plugin marketplace add /path/to/claude-harness`.
 
 ## Add to a project
 

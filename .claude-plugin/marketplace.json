@@ -1,6 +1,6 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "chris-harness",
+  "name": "chriha",
   "description": "Agent harness: ticket -> plan -> implement -> review pipeline for any repo, forge and tracker.",
   "owner": { "name": "Christopher Hartmann" },
   "plugins": [
