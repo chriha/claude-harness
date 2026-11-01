@@ -68,7 +68,7 @@ case "${pos[0]:-} ${pos[1]:-}" in
     "issue list")
         if [ -n "$search" ]; then out="$(or_empty "$fx/search.json")"
         else
-            out="$(for f in "$fx"/issues/*.json; do [ -f "$f" ] && issue "$(basename "$f" .json)"; done | jq -s --arg a "$assignee" \
+            out="$(for f in "$fx"/issues/*.json; do if [ -f "$f" ]; then issue "$(basename "$f" .json)"; fi; done | jq -s --arg a "$assignee" \
                 '[.[] | select(.state == "OPEN") | select($a == "" or any(.assignees[]; .login == ($a | sub("^@me$"; "eval-bot")))) ]')"
         fi ;;
     "issue edit") n="$(num "${pos[2]:-}")"; issue "$n" >/dev/null

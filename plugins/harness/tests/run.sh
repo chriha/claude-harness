@@ -288,6 +288,15 @@ eq "$(PATH="$p" command -v gh)" "$tmp/run/.harness-eval/bin/gh" "fake gh first o
 eq "$(PATH="$p" command -v harness-resolve)" "$bin/harness-resolve" "bin/ of the plugin under test, not an installed copy"
 eq "$(PATH="$p" gh issue view 5 --jq .title)" 't' "wrapper serves the case fixtures"
 eq "$(cat .harness-eval/gh.log)" 'issue view 5 --jq .title' "wrapper logs into the run"
+mkdir -p "$tmp/run2"
+(cd "$tmp/run2" && HOME="$tmp/home" bash "$evals/_shared/scaffold.sh" "$tmp/case") || fail "second scaffold"
+eq "$(grep -c 'path.sh' "$tmp/home/.zshenv")" '2' "one hook line per run"
+eq "$(git -C "$tmp/run2" remote get-url origin)" "$tmp/run2/.harness-eval/origin.git" "origin lives in the run, not in HOME"
+mkdir -p "$tmp/run3"; rc=0
+(cd "$tmp/run3" && HOME="$(eval echo "~$(id -un)")" bash "$evals/_shared/scaffold.sh" "$tmp/case") 2>/dev/null || rc=$?
+eq "$rc/$(ls -A "$tmp/run3")" '1/' "scaffold refuses the real home"
+mkdir -p "$tmp/ev2/fixtures/issues"
+eq "$(HARNESS_EVAL_DIR="$tmp/ev2" bash "$evals/_shared/fake-gh" issue list --assignee @me | jq -c .)" '[]' "fake gh lists no issues"
 for c in "$evals"/*/case.yaml; do
     d="$(dirname "$c")"; [ -f "$d/scaffold.sh" ] && [ -d "$d/fixtures" ] || fail "$d lacks scaffold.sh or fixtures"
 done

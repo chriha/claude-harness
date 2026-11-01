@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # scaffold.sh <case dir> — builds a harness eval run in the current directory (the run cwd `claude plugin eval --scaffold`
-# gives the case's scaffold.sh): a git repo from _shared/repo plus <case>/repo, pushed to a bare origin in $HOME;
+# gives the case's scaffold.sh): a git repo from _shared/repo plus <case>/repo, pushed to a bare origin in .harness-eval/;
 # .harness-eval/ (git-excluded) with the case's fixtures, the fake gh, gh.log and bodies/; and a PATH that puts the fake gh
 # first. Fails if any other gh or harness-resolve would win on that PATH. Both ablation arms get that PATH (bin/ and the
 # briefs it resolves), so a no-plugin arm says nothing: run the suite with --ablation none.
@@ -8,15 +8,16 @@ set -euo pipefail
 case_dir="$(cd "${1:?usage: scaffold.sh <case dir>}" && pwd)"
 shared="$(cd "$(dirname "$0")" && pwd)"
 run="$(pwd)"
+# It writes to $HOME (.zshenv, .bashrc): only in a throwaway home, never the account's real one.
+if [ "$HOME" = "$(eval echo "~$(id -un)")" ]; then echo "scaffold: \$HOME is your real home; run it via claude plugin eval" >&2; exit 1; fi
 
 cp -R "$shared/repo/." "$run/"
 if [ -d "$case_dir/repo" ]; then cp -R "$case_dir/repo/." "$run/"; fi
 git init -q -b main
 git add -A
 git -c user.name="Eval" -c user.email="eval@example.invalid" commit -qm "initial commit"
-rm -rf "$HOME/origin.git"
-git init -q --bare "$HOME/origin.git"
-git remote add origin "$HOME/origin.git"
+git init -q --bare "$run/.harness-eval/origin.git"
+git remote add origin "$run/.harness-eval/origin.git"
 git push -q origin main
 git symbolic-ref refs/remotes/origin/HEAD refs/remotes/origin/main
 
@@ -39,7 +40,8 @@ if [ "$(command -v git)" = /usr/bin/git ] && [ "$(uname)" = Darwin ]; then
 fi
 prefix="$ev/bin:$plugin_bin"
 printf 'export PATH=%q:"$PATH"\n' "$prefix" > "$ev/path.sh"
-for rc in .zshenv .bashrc; do printf '. %q\n' "$ev/path.sh" >> "$HOME/$rc"; done
+hook="$(printf '. %q' "$ev/path.sh")"
+for rc in .zshenv .bashrc; do grep -qxF "$hook" "$HOME/$rc" 2>/dev/null || printf '%s\n' "$hook" >> "$HOME/$rc"; done
 if [ "$(PATH="$prefix:$PATH" command -v gh)" != "$ev/bin/gh" ]; then echo "scaffold: the fake gh is not first on PATH" >&2; exit 1; fi
 if [ "$(PATH="$prefix:$PATH" command -v harness-resolve)" != "$plugin_bin/harness-resolve" ]; then
     echo "scaffold: harness-resolve does not come from the plugin under test" >&2; exit 1
