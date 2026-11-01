@@ -103,6 +103,21 @@ Run **up to 3 implementers in parallel**, in `ELIGIBLE` order, each with the row
 implementers in flight < N; otherwise hold it and start it later if a running implementer ends `blocked`/`planned`/`needs-info` and
 budget remains. Once the count = N, start nothing new. Tickets never started land in the report as **Not started (budget)**.
 
+### Failure classes and one retry
+
+A `partial`/`blocked` RESULT carries `class: <env/setup|checks-red|spec-unclear|tool-denied|budget>`. A reply with no RESULT line or
+an unparsable one is `blocked · no-result`: report it, never retry it in this run.
+
+Retry **once per ticket per run**, always with a changed condition:
+- `env/setup` → remove the worktree (`git -C <repo> worktree remove --force <wt>`; delete the branch only if nothing was pushed)
+  and respawn the implementer so it recreates it.
+- `checks-red` on a **sonnet** row → respawn on `model: "opus"` in the same worktree.
+- every other class, `checks-red` already on opus, and a retry that also fails → report only.
+
+A retry is a start: it takes a slot and counts against `--budget` like any other (a retry that ends `done`/`partial` is one more
+PR-opening result). If the retry also fails, chains stop as usual. Note the retry in the ticket's Step 4 line
+(`retried: fresh worktree` / `retried: opus`).
+
 Implementer prompt: `<id>`, `<repo>`, `<wt>`, `<branch>`, `<report>`, `<base>`, the row's flag (`plan approved` / continues `<PR url>`).
 Stacked: also the base ticket's `<base-wt>` and PR url. Add `no-verify` / `allow-external-apis` when passed.
 
@@ -123,7 +138,7 @@ the triage block** — don't open tickets or files. One line each:
 
 - **Cleaned up:** Step 0's cleaned-up tickets.
 - **Draft PRs:** implementer `done` that passed the check (or was skipped), with PR url.
-- **Partial / blocked / held:** implementer `partial`/`blocked`, a `done` that got `CHECK_FAIL` (with the failed checks), triage `BLOCKED`/`HELD` (with the user's choice, if asked), with the draft PR url where there is one.
+- **Partial / blocked / held:** implementer `partial`/`blocked` with its `class` (plus `retried: …` when Step 2 retried it; `no-result` for a missing RESULT), a `done` that got `CHECK_FAIL` (with the failed checks), triage `BLOCKED`/`HELD` (with the user's choice, if asked), with the draft PR url where there is one.
 - **Stacked:** each chain as `A → B → C` with PR urls, *chain stopped at <id>* where it stopped. Merge stacked PRs **in chain order**. Plus Step 0's `UNSTACK_CONFLICT` lines (need a manual merge of the default branch).
 - **Planned:** implementer `planned` → `/harness:ticket <id>` to answer its questions and approve it.
 - **Needs info:** triage `NEEDS_INFO` plus implementer `needs-info` → `/harness:ticket <id>` answers the open questions and removes `needs-info`.

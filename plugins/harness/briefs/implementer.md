@@ -62,6 +62,8 @@ It fetches `origin/<base>`, adds the worktree (new branch from `origin/<base>`, 
     and the real code in later commits. Run `harness-red-check <wt> <base> <stub-commit sha>`: the red run keeps the stubs and drops
     only what came after them. Name the stub commit in `## Tests`. A stub that already makes the tests pass exits 1.
 - **Checks** — same as CI, green before every commit: harness.md § Commands `test`, `static`, `format`, `build` (empty = skip).
+  **Fix budget: 3 attempts per failing check** (a fix + re-run is one attempt); then stop, set `partial` (class `checks-red`) and
+  list the rest under `## Open`.
   Fix new findings in the code — no suppression comments, no skipped tests, no baseline/exclusion entries, no widened types to
   silence a tool. A baseline entry your fix resolved → delete it. Only format the files you changed.
 - **Self-check** before committing: no invented functions or methods (verify they exist), no swallowed errors or catch-alls added
@@ -81,7 +83,7 @@ It fetches `origin/<base>`, adds the worktree (new branch from `origin/<base>`, 
     exclude_from_size as ':(exclude,glob)…'>`: **≤ 200 → `low`, > 200 → `medium`**. Never `high` or above.
   - Merge both reviewers' findings, drop duplicates (same file:line or problem) before fixing.
   - Fix each in-scope finding in one extra commit, then re-run the checks. An out-of-scope finding goes under `## Findings`.
-  - No second review round. If the fixes need review, or the re-run is not green and not quickly fixable, list the remaining
+  - No second review round. If the fixes need review, or the re-run is still red after the 3-attempt budget, list the remaining
     findings under `## Open` and set the status to `partial`.
   - Record in the report's `## Review`: each finding → fixed | out of scope | open, or `none`; the `/code-review` level, changed-line
     count and each review sub-agent's token use.
@@ -130,7 +132,7 @@ or acceptance criterion that looks wrong lands here too — never edit those sec
 Write `<report>` (overwrite):
 ```
 ## Status
-done | partial | blocked | planned | needs-info
+done | partial | blocked | planned | needs-info — for partial/blocked add `class: <class>` (below)
 ## Commits
 <short sha + subject per line, or "none">
 ## Touched
@@ -153,5 +155,13 @@ done | partial | blocked | planned | needs-info
   "none"), **PR** (url). Then a `Changed` comment.
 - **partial / blocked** → update `## Status` with what's done, what's open and why, and the draft PR url; then a `Changed` comment.
 
+**Failure class** — every `partial`/`blocked` names exactly one, in the report `## Status` and the RESULT line:
+- `env/setup` — worktree/setup/install/build or tool environment broke (`harness-red-check` exit 4; exit 5 when the compile/setup error is not from your code).
+- `checks-red` — checks or tests still red after the 3-attempt budget (`harness-red-check` exit 1, 2 or 5 from your own code).
+- `spec-unclear` — ticket/plan can't be satisfied as written (`harness-red-check` exit 3 when no test is possible).
+- `tool-denied` — a needed tool/permission/hook (e.g. `harness-guard`) refused.
+- `budget` — you ran out of turns/context before finishing.
+
 **Result** — your final reply must be only this line:
 `RESULT <id>: <done|partial|blocked|planned|needs-info> · PR <url|none> · commits <n> · findings: <short title>; <short title>; … (or "none")`
+For `partial`/`blocked` insert `· class: <class>` right after the status.
