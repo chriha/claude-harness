@@ -35,6 +35,18 @@ that trailer whose author is a person.
    whose suspect commit belongs to them (their commit SHAs incl. merge/squash SHA), ÷ all agent PRs; count a PR once. Use the `sentry`
    MCP tools (`find_organizations`/`find_projects`, `search_issues`, `get_sentry_resource`). Unreachable / no commit data → `n/a`, never `0`.
 
+### Guardrail value
+
+Local data only: `<repo>/.user/reports/archive/issue-*.md` (archived implementer reports) whose date suffix is in the window, plus
+the reports in `<repo>/.user/reports/` and the run logs in `<repo>/.user/runs/` (covers runs from this machine only). Read with Read/Grep.
+
+8. **Reviewer-source yield** — from each report's `## Review` lines `- [<source>] … — fixed|out of scope|open`: per source (`rules`,
+   `test-quality`, `code-review`, `intent`) the findings and the fixed findings. Untagged old-format lines are skipped.
+9. **Red-check exits** — count of the `red-check: exit <n>` lines in the reports' `## Tests`, per exit code (0–5).
+10. **Failure classes** — counts per class once failure classes are recorded in reports/run logs (ticket #11); until then `n/a`.
+
+No archive/report data in the window → KPIs 8–10 are `n/a`, never `0`. A source with reports but no tagged lines is `n/a` too.
+
 A KPI with no data in the window is `n/a`, never `0`.
 
 ## Record
@@ -45,9 +57,14 @@ A KPI with no data in the window is `n/a`, never `0`.
 3. Append one row, keeping the rest of the document intact:
 
 ```
-| date | window | agent PRs | first-pass | threads/PR | lead time p50/p90 (h) | done/partial/blocked/planned/needs-info | finding precision | <ratchet…> | post-merge breakage |
+| date | window | agent PRs | first-pass | threads/PR | lead time p50/p90 (h) | done/partial/blocked/planned/needs-info | finding precision | findings/fixed rules | findings/fixed test-quality | findings/fixed code-review | findings/fixed intent | red-check exits (0/1/2/3/4/5) | failure classes | <ratchet…> | post-merge breakage |
 ```
-(omit the breakage column unless `sentry: true`)
+(omit the breakage column unless `sentry: true`; older rows without the guardrail columns read `n/a` for them — add the columns to the header when missing)
 
 4. Print the new row and a delta line per KPI against the previous row (`+n`, `-n` or `n/a`), then one line naming the largest
-   regression, if any. First run: say there is no previous row. Commit nothing — the doc change is left for the human.
+   regression, if any. First run: say there is no previous row.
+5. **Prune candidates** — after the delta lines: for each reviewer source whose fixed-findings count is `0` in this row and the
+   two rows before it (3 rows, this one included; every one of the three must have data, not `n/a`), print
+   `candidate to drop: <source>`. Fewer than 3 rows → print nothing. Report only; change nothing.
+
+Commit nothing — the doc change is left for the human.

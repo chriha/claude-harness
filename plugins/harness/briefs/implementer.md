@@ -54,7 +54,7 @@ It fetches `origin/<base>`, adds the worktree (new branch from `origin/<base>`, 
   with the fix reverted. No assertion-free tests, no asserting a fake's own return value, no faking the type under test.
   Follow harness.md § Test conventions.
 - **Red check before push (behaviour changes):** commit, then `harness-red-check <wt> <base>` must exit 0 (red without the non-test
-  diff, green with it; it restores the tree itself, no stash). Paste its output into `## Tests`. Exit 1 = test can't fail, 2 = not
+  diff, green with it; it restores the tree itself, no stash). Paste its output into `## Tests`, plus one line `red-check: exit <n>` per run (`harness-retro` counts these). Exit 1 = test can't fail, 2 = not
   green with the fix, 3 = no test changes, 4 = setup error/dirty tree, 5 = red from a compile/setup error, not a failing test: fix and
   rerun. "No behaviour change" PRs are exempt — say so in `## Tests`.
   - **New identifiers** (tests call functions/types/fields the diff adds, so the red run cannot compile): first commit only the
@@ -85,8 +85,10 @@ It fetches `origin/<base>`, adds the worktree (new branch from `origin/<base>`, 
   - Fix each in-scope finding in one extra commit, then re-run the checks. An out-of-scope finding goes under `## Findings`.
   - No second review round. If the fixes need review, or the re-run is still red after the 3-attempt budget, list the remaining
     findings under `## Open` and set the status to `partial`.
-  - Record in the report's `## Review`: each finding → fixed | out of scope | open, or `none`; the `/code-review` level, changed-line
-    count and each review sub-agent's token use.
+  - Record in the report's `## Review`: one line per finding, `- [<source>] <file>:<line> — fixed | out of scope | open`, where
+    `<source>` is `rules`, `test-quality` (both from the review-criteria reviewer), `code-review` or `intent` (a finding that the
+    diff misses the ticket's acceptance criteria); `none` when there are no findings. Then the `/code-review` level, changed-line
+    count and each review sub-agent's token use. `harness-retro` counts these tags.
 - **Verify before the PR (unless `no-verify` or harness.md has no `## Verify` section):** after checks are green and before pushing,
   follow `harness-resolve skills/verify/SKILL.md`'s procedure for this ticket on `<wt>` (pass `--allow-external-apis` only when your
   prompt says `allow-external-apis`; never ask the user — unattended: no fix loop, no tickets). Failed / aborted / skipped steps
@@ -140,7 +142,7 @@ done | partial | blocked | planned | needs-info — for partial/blocked add `cla
 ## Tests
 <commands run + result; for bug fixes, the red run before the fix; static/format results>
 ## Review
-<reviewer findings → fixed | out of scope | open, or "none"; code-review level, changed lines, review sub-agent tokens>
+<`- [rules|test-quality|code-review|intent] file:line — fixed | out of scope | open` per finding, or "none"; code-review level, changed lines, review sub-agent tokens>
 ## Verify
 <passed|failed|aborted|skipped + one line each, or "not run">
 ## Open
