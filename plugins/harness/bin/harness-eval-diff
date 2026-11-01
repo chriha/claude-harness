@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# Usage: harness-eval-diff [results dir]   (default: the evals/results/ next to this bin/)
+# Compares the two newest `claude plugin eval` runs (aggregate-result.json anywhere under the dir, ordered by startedAt).
+# Prints a header `<prev file> → <new file>`, then one line per case of the newer run: `<case>: <prev> → <new>` with scores
+# rounded to two decimals, `n/a` when the case is not in the previous run, and `  DROP` appended when the score fell.
+# Exit 0 on success; 1 when fewer than two result files exist or a file has an unknown shape (needs jq).
+set -euo pipefail
+export LC_ALL=C
+dir="${1:-$(cd "$(dirname "$0")/.." && pwd)/evals/results}"
+die() { echo "harness-eval-diff: $*" >&2; exit 1; }
+command -v jq >/dev/null || die "jq not found"
+[ -d "$dir" ] || die "no results dir: $dir"
+
+# schema: version 1, cases[].name (string) and cases[].aggregates.score (number)
+shape='.schemaVersion == 1 and (.startedAt | type) == "string" and (.cases | type) == "array"
+  and all(.cases[]; (.name | type) == "string" and (.aggregates.score | type) == "number")'
+
+runs=""
+while IFS= read -r f; do
+    jq -e "$shape" "$f" >/dev/null 2>&1 || die "unknown result shape (schemaVersion 1 with startedAt, cases[].name, cases[].aggregates.score expected): $f"
+    runs+="$(jq -r .startedAt "$f")"$'\t'"$f"$'\n'
+done < <(find "$dir" -type f -name aggregate-result.json)
+
+newest="$(printf '%s' "$runs" | sort | tail -n 2 | cut -f 2-)"
+[ "$(printf '%s' "$newest" | grep -c .)" -ge 2 ] || die "need two runs under $dir, found $(printf '%s' "$runs" | grep -c . || true)"
+prev="$(printf '%s\n' "$newest" | sed -n 1p)"
+new="$(printf '%s\n' "$newest" | sed -n 2p)"
+
+echo "$prev → $new"
+# scores as integer hundredths, so the comparison matches what is printed
+jq -r --slurpfile prev "$prev" '
+  ($prev[0].cases | map({(.name): .aggregates.score}) | add // {}) as $p
+  | .cases[] | [.name, ($p[.name] // null | if . == null then "-" else (. * 100 | round) end), (.aggregates.score * 100 | round)]
+  | @tsv' "$new" |
+while IFS=$'\t' read -r name p n; do
+    fmt() { printf '%d.%02d' $(($1 / 100)) $(($1 % 100)); }
+    if [ "$p" = - ]; then
+        echo "$name: n/a → $(fmt "$n")"
+    elif [ "$n" -lt "$p" ]; then
+        echo "$name: $(fmt "$p") → $(fmt "$n")  DROP"
+    else
+        echo "$name: $(fmt "$p") → $(fmt "$n")"
+    fi
+done
