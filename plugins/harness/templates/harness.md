@@ -7,6 +7,7 @@ To change a whole brief/adapter instead, copy it to `.claude/harness/<same path>
 tracker: github
 forge: github
 <!-- labels/priority scheme differing from the adapter's defaults go here -->
+<!-- tracker: linear → also linear_mcp: (MCP server name, default linear), linear_team: (team key), linear_accept_state: (default Todo) -->
 
 ## Commands
 test: 

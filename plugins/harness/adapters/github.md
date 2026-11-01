@@ -11,12 +11,18 @@ Branch ↔ ticket: branch `<type>/<n>-<slug>`; the leading number after `<type>/
 |---|---|
 | read-ticket | `gh issue view <n> --json number,title,body,labels,comments,assignees,state` |
 | list-tickets (mine, open) | `gh issue list --assignee @me --state open --json number,title,labels,createdAt` |
+| list-triage | `gh issue list --label triage --state open --json number,title,labels,createdAt,author` |
 | search-tickets | `gh issue list --state open\|all --search "<kw>" --json number,title,state,labels` |
 | create-ticket | `gh issue create --title … --body-file <f> --label … --assignee @me` (omit `--assignee` for triage issues) |
 | edit-description | read body to a scratchpad file → change only your sections → `gh issue edit <n> --body-file <f>` (re-read right before writing) |
 | comment | `gh issue comment <n> --body …` |
 | add-label / remove-label | `gh issue edit <n> --add-label … / --remove-label …` |
 | create-label (once) | `gh label create <name> --color <hex>` |
+| assign-me | `gh issue edit <n> --add-assignee @me` |
+| set-priority | `gh issue edit <n> --add-label priority:<1-4>` (and `--remove-label` any other `priority:*`) |
+| accept-triage | `gh issue edit <n> --remove-label triage --add-assignee @me` |
+| close-not-planned | `gh issue close <n> --reason "not planned"` |
+| close-duplicate | `comment` `Duplicate of #<m>` → `gh issue close <n> --reason "not planned"` |
 | blockers-read | `gh api repos/{owner}/{repo}/issues/<n>/dependencies/blocked_by` |
 | blockers-add | `gh api -X POST repos/{owner}/{repo}/issues/<n>/dependencies/blocked_by -F issue_id=<blocker numeric id>`; numeric id = `gh api repos/{owner}/{repo}/issues/<blocker> --jq .id` |
 | related | no relation type: write `Related: #<m>` under `## Reference` |

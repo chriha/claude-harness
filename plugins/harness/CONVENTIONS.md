@@ -24,7 +24,7 @@ Missing section = generic defaults apply. The briefs say "per harness.md § <Sec
 
 ## Tracker / forge adapters
 Briefs and skills speak in **operations**, never in CLI strings. `adapters/<name>.md` maps each operation to exact commands:
-read-ticket, list-tickets, edit-description-section, comment, add/remove-label, create-ticket, blockers (read/add), list-prs, create-draft-pr, pr-diff, pr-comments (inline + general), edit-pr-base, pr-state-of-branch, closing-keyword, ticket-id regex, collision-search.
+read-ticket, list-tickets, list-triage, edit-description-section, comment, add/remove-label, assign-me, set-priority, accept-triage, close-not-planned, close-duplicate, create-ticket, blockers (read/add), list-prs, create-draft-pr, pr-diff, pr-comments (inline + general), edit-pr-base, pr-state-of-branch, closing-keyword, ticket-id regex, collision-search.
 `adapters/_template.md` lists every operation to fill in for a new platform.
 
 ## Paths

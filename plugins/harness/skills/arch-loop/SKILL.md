@@ -96,8 +96,7 @@ Summarize with ids (`<id>` + one line), not bodies: domains scanned; new signals
 **skipped over budget** (`N more not filed`, severities; omit if none); **targets** per domain (value vs. target, met or not; omit if none);
 tickets now `triage` awaiting acceptance (id, priority, one line, url).
 
-**Default:** stop. End with: **"Filed as `triage`. Review the `arch-loop` + `triage` tickets, remove `triage` and assign accepted ones to
-yourself — `/harness:work` picks them up."** Do not run work, remove `triage`, or close tickets yourself.
+**Default:** stop. End with: **"Filed as `triage`. Accept them with `/harness:triage --label arch-loop` — `/harness:work` picks up accepted ones."** Do not run work, remove `triage`, or close tickets yourself.
 
 **`--handoff`:** for each planned ticket `remove-label triage`, assign to me, then invoke `/harness:work <id> <id> …` in this session
 (`Skill`). It gates, plans or implements each ticket and opens draft PRs — handing off skips none of *its* checkpoints. Relay its report.

@@ -125,7 +125,7 @@ tickets or files. One line each:
 - **Needs info:** triage `NEEDS_INFO` plus implementer `needs-info` → `/harness:ticket <id>` answers the open questions and removes `needs-info`.
 - **Skipped:** triage `SKIPPED`.
 - **Not started (budget):** with `--budget N`, the eligible tickets (and chain remainders) never started.
-- **New triage tickets:** verifier `confirmed` (id + url), plus a one-line duplicate/invalid tally.
+- **New triage tickets:** verifier `confirmed` (id + url), plus a one-line duplicate/invalid tally → `/harness:triage` accepts them.
 - Worktrees still around: one `git worktree list`.
 
 End with: **"Draft PRs are open (base `<base-sha>`). Check CI, review, and mark them ready yourself. The next `/harness:work`

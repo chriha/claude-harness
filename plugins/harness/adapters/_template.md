@@ -7,7 +7,7 @@ See `github.md` for a complete example.
 Header: ticket reference format · ticket id regex · worktree name (`issue-<id>`) · closing keyword (how a PR/MR closes the ticket, or "tracker moves status from the id in the title") · reference form (links without closing, for non-final plan slices) · branch ↔ ticket rule.
 
 ## Tracker operations
-read-ticket · list-tickets (mine, open/todo) · search-tickets · create-ticket · edit-description (partial edit rules!) · comment · add-label / remove-label · create-label · blockers-read · blockers-add · related · in-flight · collision-search · ticket-of-pr · harness-issues (dedupe by key) · status-of-ticket
+read-ticket · list-tickets (mine, open/todo) · list-triage · search-tickets · create-ticket · edit-description (partial edit rules!) · comment · add-label / remove-label · create-label · assign-me · set-priority · accept-triage · close-not-planned · close-duplicate · blockers-read · blockers-add · related · in-flight · collision-search · ticket-of-pr · harness-issues (dedupe by key) · status-of-ticket
 Plus: priority scheme · type labels · special labels (on hold, ready-for-human, needs-info, planning, triage, agent-harness) and their names on this tracker.
 
 ## Forge operations
