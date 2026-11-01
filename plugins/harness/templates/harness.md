@@ -40,3 +40,6 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 
 ## Never
 - Change dependencies without approval.
+
+## Models
+implementer_model: sonnet    <!-- sonnet (default) | opus: run the whole implementer session on opus -->

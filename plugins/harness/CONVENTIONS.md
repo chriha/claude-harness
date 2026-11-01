@@ -20,6 +20,7 @@ Sections the briefs refer to by name — keep these headings:
 - `## Self-check` — project-specific "no X" list run before each commit.
 - `## Test conventions` — what a good test looks like here (feeds `review-criteria.md` "Test quality").
 - `## Never` — hard rules (deps changes need approval, no migrations without plan, ...).
+- `## Models` — `implementer_model:` `sonnet` (default) | `opus` (whole-session opus implementer; see § Implementer models and consults).
 Missing section = generic defaults apply. The briefs say "per harness.md § <Section>".
 
 ## Tracker / forge adapters
@@ -47,6 +48,26 @@ not to happen:
   unions it into `.claude/settings.json`, `/harness:doctor` flags missing entries. It applies to interactive sessions too, and
   prefix patterns can't catch combined flags (`-uf`) — the guard does.
 - A new hard rule → add it to the brief **and** to `harness-guard` with a test (and to `deny` when a permission pattern can express it).
+
+## Implementer models and consults
+The implementer session runs on **sonnet** and is the only agent that writes code. `implementer_model: opus` in harness.md
+§ Models opts a project in to a whole-session opus implementer (default `sonnet`; nothing else picks opus for the session — not
+plan-approved rows, not the triager). The session calls short-lived consult sub-agents; each prompt carries the ticket, the
+specific question, the relevant findings and the diff — never the session transcript — and the brief fixes the reply format.
+- **Haiku auditor** — mechanical, checkable work only; replies are lists of `file:line`, never conclusions: the Self-check audits
+  over the diff (functions that don't exist, duplicated helpers, swallowed errors, unquoted shell/SQL), caller and sibling-pattern
+  lookups, the scope/size check (files the ticket doesn't name, the ~400-line limit). Run in parallel in one message. Gate
+  exploration stays with the session.
+- **Opus advisor** — at four fixed triggers only, never "when it feels big":
+  1. **Gate** — a plan-first trigger is uncertain → replies `just-solve` | `plan` | `needs-info` + one line why.
+  2. **Plan** — writes the `## Plan` block.
+  3. **Stuck fix** — after the 2nd failed attempt of the 3-attempt fix budget → a diagnosis from the failing output and the diff.
+     The `checks-red` retry respawns the implementer on opus only when this consult already ran.
+  4. **Sign-off** — replaces the per-finding validators of the review step: gets both reviewers' merged findings and the diff,
+     drops false positives, adds misses, and does one short re-check after the fix commit. Opus when changed lines > 200 (the
+     `/code-review` level cutoff) or the ticket is plan-approved; sonnet otherwise.
+- The report's `## Review` records each consult (role, model, trigger) and its token use next to the review sub-agents' tokens;
+  `harness-retro` counts them.
 
 ## Behaviour is checked by evals
 `tests/run.sh` covers `bin/`; `evals/<case>/case.yaml` (`claude plugin eval`) covers how agents behave under a brief/skill.
