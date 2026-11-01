@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Usage: harness-eval-diff [results dir]   (default: the evals/results/ next to this bin/)
+# Not implemented yet.
+echo "harness-eval-diff: not implemented" >&2
+exit 1
