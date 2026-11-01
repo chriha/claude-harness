@@ -186,6 +186,30 @@ jq -e '[.permissions.deny[] | test("^[A-Za-z]+\\(.+\\)$")] | all' "$base" >/dev/
 grep -q '`deny`' "$bin/../skills/init/SKILL.md" || fail "init step 5 does not merge deny"
 grep -q 'missing deny' "$bin/../skills/doctor/SKILL.md" || fail "doctor does not flag missing deny entries"
 
+
+# --- harness-worktree clean archives the report; harness-sync prunes after 90 days (#13)
+repo "$tmp/arch" '## Tracker
+forge: none'
+cd "$tmp/arch"
+"$bin/harness-worktree" add issue-7 --branch fix/7-x >/dev/null
+git -C .user/worktrees/issue-7 push -q -u origin fix/7-x
+git push -q origin --delete fix/7-x
+mkdir -p .user/reports .user/runs .user/reports/archive
+echo r > .user/reports/issue-7.md; touch -t 202001010000 .user/reports/issue-7.md
+echo old > .user/reports/archive/issue-1-old.md; echo old > .user/runs/old.md
+echo new > .user/reports/archive/issue-2-new.md; echo new > .user/runs/new.md
+touch -t 202001010000 .user/reports/archive/issue-1-old.md .user/runs/old.md
+out="$("$bin/harness-sync")"
+case "$out" in *"issue-7 deleted"*) ;; *) fail "sync cleaned issue-7: $out" ;; esac
+case "$out" in *"pruned 2"*) ;; *) fail "sync prunes 2: $out" ;; esac
+[ ! -e .user/reports/issue-7.md ] || fail "report left in place"
+eq "$(cat ".user/reports/archive/issue-7-$(date +%F).md")" r "report archived"
+[ ! -e .user/reports/archive/issue-1-old.md ] && [ ! -e .user/runs/old.md ] || fail "old files kept"
+out="$("$bin/harness-sync")"
+case "$out" in *pruned*) fail "second sync prunes nothing: $out" ;; esac
+[ -e ".user/reports/archive/issue-7-$(date +%F).md" ] || fail "archived report pruned by old mtime"
+[ -e .user/reports/archive/issue-2-new.md ] && [ -e .user/runs/new.md ] || fail "new files pruned"
+
 # --- harness-check-pr (#12): report check + stubbed gh
 repo "$tmp/chk" '## Tracker
 forge: github'
