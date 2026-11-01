@@ -48,6 +48,18 @@ not to happen:
   prefix patterns can't catch combined flags (`-uf`) — the guard does.
 - A new hard rule → add it to the brief **and** to `harness-guard` with a test (and to `deny` when a permission pattern can express it).
 
+## Behaviour is checked by evals
+`tests/run.sh` covers `bin/`; `evals/<case>/case.yaml` (`claude plugin eval`) covers how agents behave under a brief/skill.
+- **A brief/skill behaviour change updates or adds an eval case**; run it before and after the change and compare with
+  `bin/harness-eval-diff` (per case `prev → new`, `DROP` on a fall). A new case is checked once by hand: planting a regression
+  in the brief it guards lowers its score (note it in the PR).
+- Cases run offline: `case.yaml` names `scaffold.sh`, which calls `_shared/scaffold.sh` — throwaway repo with a bare `origin`,
+  case `fixtures/`, a fake `gh` first on PATH (answers adapter operations from fixture JSON, logs calls to `.harness-eval/gh.log`),
+  git ref logs (`git.log`, `origin.log`); optional `setup.sh` for extra state. Graders score 0–1 from those logs and the reply.
+- Run: `claude plugin eval plugins/harness [--case '<glob>'] --scaffold --ablation none --allow-tools Bash Write Edit --max-cost-usd <usd>`.
+  Always cap the cost. `--ablation none` because the scaffold puts the plugin's `bin/` on PATH for both arms (a no-plugin arm
+  measures nothing). Results land in `evals/results/` (gitignored).
+
 ## Style
 Terse imperative briefs, no prose padding. Orchestrators stay thin (route only). Sub-agent final reply = a single RESULT block/line defined in its brief.
 Skills are named without prefix; the plugin namespace gives `/harness:<name>`.
