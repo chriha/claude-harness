@@ -32,6 +32,19 @@ Skills and briefs resolve every overridable file through `harness-resolve`, so a
 `init` · `doctor` · `ticket` · `triage` · `work` · `review` · `work-on-comments` · `verify` · `harness-retro` · `arch-loop`
 Invoke as `/harness:<name>`.
 
+## Guardrails — hard rules in code, not only in prompts
+
+- **Hook** `hooks/hooks.json` → `bin/harness-guard` (PreToolUse). For calls from `harness:*` agents or under `<repo>/.user/worktrees/`
+  it refuses force-push, `gh pr merge|ready`, `gh pr review --approve`, `git commit --no-verify`, edits to lockfiles/`go.mod` and writes
+  to `.user/worktrees/_main`, with a reason naming the rule and its brief. Your own interactive work elsewhere is untouched.
+- **Agents** `agents/{triager,implementer,verifier}.md`: `/harness:work` spawns `harness:<role>`; triager and verifier have no
+  Edit/Write/NotebookEdit.
+- **Deny list** in `templates/settings.base.json` (force-push variants, `gh pr merge`, `gh pr ready`): `/harness:init` merges it into
+  `.claude/settings.json`, `/harness:doctor` flags missing entries. It applies to interactive sessions too: agents open drafts and
+  never merge or mark ready, and in this setup neither does Claude for you. Run those yourself.
+
+Details: `plugins/harness/CONVENTIONS.md` § Hard rules are enforced in code.
+
 ## Platforms
 
 `adapters/github.md` (tracker + forge) and `adapters/linear.md` (tracker, via the Linear MCP server; `ticket`/`triage` work there; `/harness:work`
@@ -47,5 +60,5 @@ for a new tracker; `harness-worktree`/`harness-sync` have a `forge` switch.
 
 ```
 .claude-plugin/marketplace.json
-plugins/harness/{.claude-plugin,skills,briefs,adapters,bin,packs,templates,CONVENTIONS.md}
+plugins/harness/{.claude-plugin,skills,agents,hooks,briefs,adapters,bin,packs,templates,tests,CONVENTIONS.md}
 ```
