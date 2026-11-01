@@ -37,6 +37,14 @@ Skills and briefs resolve every overridable file through `harness-resolve`, so a
 `init` · `doctor` · `ticket` · `triage` · `work` · `review` · `work-on-comments` · `verify` · `harness-retro` · `arch-loop`
 Invoke as `/harness:<name>`.
 
+## Models
+
+The implementer session runs on sonnet; haiku sub-agents do the mechanical audits (Self-check over the diff, caller lookups,
+scope/size), and opus is consulted at four fixed points: an uncertain gate, writing the plan, after the 2nd failed fix attempt,
+and the review sign-off (opus above 200 changed lines or on plan-approved tickets, sonnet otherwise). To run the whole implementer session on opus instead,
+set `implementer_model: opus` under `## Models` in `.claude/harness.md` (default `sonnet`).
+Details: `plugins/harness/CONVENTIONS.md` § Implementer models and consults.
+
 ## Guardrails — hard rules in code, not only in prompts
 
 - **Hook** `hooks/hooks.json` → `bin/harness-guard` (PreToolUse). For calls from `harness:*` agents or under `<repo>/.user/worktrees/`
