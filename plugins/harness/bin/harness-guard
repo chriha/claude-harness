@@ -1,0 +1,152 @@
+#!/usr/bin/env bash
+# harness-guard — PreToolUse hook (hooks/hooks.json): enforces the briefs' hard rules in code instead of prompts.
+# Reads the hook JSON on stdin. Only harness-scoped calls are checked: the session cwd, a Bash command's text or a file tool's
+# target lies under `<repo>/.user/worktrees/`. A violation prints a PreToolUse `deny` with a reason naming the rule and its
+# brief; anything else exits 0 without output (normal permission flow). Fails open when jq is missing or the input is unreadable.
+# Not a sandbox: it matches the command text, so it stops mistakes, not an agent set on evading it.
+export LC_ALL=C # byte-wise substrings: the tokeniser stays linear
+command -v jq >/dev/null 2>&1 || exit 0
+input=$(cat)
+tool=$(jq -r '.tool_name // empty' <<<"$input" 2>/dev/null) || exit 0
+cwd=$(jq -r '.cwd // empty' <<<"$input")
+WT=/.user/worktrees/
+
+deny() {
+    jq -nc --arg r "harness-guard: $1" \
+        '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: $r}}'
+    exit 0
+}
+
+# norm <path>: absolute, lexically normalised (no symlinks resolved; the target may not exist yet)
+norm() {
+    local p=$1 part out=""
+    case $p in /*) ;; *) p="$cwd/$p" ;; esac
+    local IFS=/
+    for part in $p; do
+        case $part in
+            '' | .) ;;
+            ..) out=${out%/*} ;;
+            *) out="$out/$part" ;;
+        esac
+    done
+    printf '%s' "${out:-/}"
+}
+
+# --- file tools: lockfiles / go.mod, the read-only _main checkout
+check_file() {
+    local f
+    f=$(norm "$1")
+    case $f in *"$WT"*) ;; *) return 0 ;; esac
+    case $f in *"${WT}_main" | *"${WT}_main/"*)
+        deny "write under .user/worktrees/_main refused — it is the read-only checkout of the default branch; edit only inside your <wt> (briefs/implementer.md: \"Work only inside <wt>\", briefs/verifier.md: \"Read-only\")" ;;
+    esac
+    case ${f##*/} in
+        go.mod | go.sum | composer.lock | package-lock.json | npm-shrinkwrap.json | yarn.lock | pnpm-lock.yaml | bun.lock | bun.lockb | \
+            Cargo.lock | Gemfile.lock | poetry.lock | uv.lock | Pipfile.lock | mix.lock | pubspec.lock | Package.resolved)
+            deny "editing ${f##*/} changes dependencies — raise the dependency change as an open question instead (briefs/implementer.md: \"Never change dependencies\")" ;;
+    esac
+}
+
+# --- Bash: tokenise into simple commands (quote-aware), check each
+FORCE="force-push refused — never force-push or rewrite history; integrate a newer base with \`git merge origin/<base>\` and push normally (briefs/git-rules.md, briefs/implementer.md)"
+NOVERIFY="skipping commit hooks (--no-verify / -n) refused — fix what the hook reports and commit again (briefs/git-rules.md: \"Never skip hooks\")"
+DRAFT="PRs stay draft — agents never mark ready, merge or approve; the human does (briefs/git-rules.md, adapters/github.md Rules)"
+
+check_git() { # args after `git`
+    while [ $# -gt 0 ]; do # global options
+        case $1 in
+            -C | -c | --git-dir | --work-tree | --namespace | --exec-path) shift 2 ;;
+            -*) shift ;;
+            *) break ;;
+        esac
+    done
+    local sub=${1:-} a i c
+    [ $# -gt 0 ] && shift
+    case $sub in
+        push)
+            for a in "$@"; do
+                case $a in
+                    --) break ;;
+                    --force | --force-with-lease | --force-with-lease=*) deny "$FORCE" ;;
+                    --*) ;;
+                    -*f*) deny "$FORCE" ;; # -f, -uf, ...
+                    +*) deny "$FORCE" ;;   # +refspec
+                esac
+            done ;;
+        commit)
+            while [ $# -gt 0 ]; do
+                a=$1; shift
+                case $a in
+                    --) break ;;
+                    --no-verify) deny "$NOVERIFY" ;;
+                    --message | --file | --author | --date | --template | --reuse-message | --reedit-message | --fixup | --squash | \
+                        --trailer | --cleanup) shift ;;
+                    --*) ;;
+                    -?*) # short cluster: letters until one that takes a value (rest of the cluster, or the next word)
+                        for ((i = 1; i < ${#a}; i++)); do
+                            c=${a:i:1}
+                            case $c in
+                                n) deny "$NOVERIFY" ;;
+                                m | F | C | c | t) [ $((i + 1)) -eq ${#a} ] && shift; break ;;
+                            esac
+                        done ;;
+                esac
+            done ;;
+    esac
+}
+
+check_gh() { # args after `gh`
+    [ "${1:-}" = pr ] || return 0
+    case ${2:-} in
+        merge | ready) deny "$DRAFT" ;;
+        review) shift 2; for a in "$@"; do case $a in --approve | -a) deny "$DRAFT" ;; esac; done ;;
+    esac
+}
+
+check_simple() { # one simple command's words
+    while [ $# -gt 0 ]; do # prefixes: VAR=x, env, command, exec, time, sudo, nice
+        case $1 in
+            *=* | env | command | exec | time | sudo | nice | nohup) shift ;;
+            *) break ;;
+        esac
+    done
+    [ $# -gt 0 ] || return 0
+    case ${1##*/} in
+        git) shift; check_git "$@" ;;
+        gh) shift; check_gh "$@" ;;
+    esac
+}
+
+check_bash() {
+    local s=$1 n=${#1} i ch q="" tok="" have=0
+    local -a words=()
+    for ((i = 0; i <= n; i++)); do
+        ch=${s:i:1}
+        if [ $i -eq $n ]; then ch=$'\n'
+        elif [ "$q" = "'" ]; then [ "$ch" = "'" ] && q="" || tok+=$ch; continue
+        elif [ "$q" = '"' ]; then
+            case $ch in '"') q="" ;; \\) i=$((i + 1)); tok+=${s:i:1} ;; *) tok+=$ch ;; esac; continue
+        fi
+        case $ch in
+            \\) i=$((i + 1)); tok+=${s:i:1}; have=1 ;;
+            \' | \") q=$ch; have=1 ;;
+            ' ' | $'\t') [ $have = 1 ] && words+=("$tok"); tok="" have=0 ;;
+            ';' | '&' | '|' | '(' | ')' | '`' | $'\n')
+                [ $have = 1 ] && words+=("$tok"); tok="" have=0
+                [ ${#words[@]} -gt 0 ] && check_simple "${words[@]}"
+                words=() ;;
+            *) tok+=$ch; have=1 ;;
+        esac
+    done
+}
+
+case $tool in
+    Edit | Write | MultiEdit | NotebookEdit)
+        f=$(jq -r '.tool_input.file_path // .tool_input.notebook_path // empty' <<<"$input")
+        [ -n "$f" ] && check_file "$f" ;;
+    Bash)
+        cmd=$(jq -r '.tool_input.command // empty' <<<"$input")
+        case $cwd/ in *"$WT"*) ;; *) case $cmd in *.user/worktrees/*) ;; *) exit 0 ;; esac ;; esac
+        check_bash "$cmd" ;;
+esac
+exit 0

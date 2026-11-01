@@ -1,0 +1,11 @@
+{
+  "description": "harness-guard: refuse force-push, merging/readying PRs, skipped commit hooks, dependency edits and writes to _main for harness agents",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/bin/harness-guard", "timeout": 10 }]
+      }
+    ]
+  }
+}

@@ -9,7 +9,7 @@ Values in `<…>` come from harness.md § Branch & commits; defaults in parenthe
   single-word scope, ≤ (72) chars total. If harness.md says the ticket id goes into the subject, it follows right after `: `.
 - Push only that branch, only to `origin`. Never push to the default or base branch, never force-push, never rewrite
   history (`rebase`, `reset --hard`, `commit --amend`, `stash`). Integrate a newer base with `git merge origin/<base>`.
-- Stage by path only (never `git add -A` / `.`).
+- Stage by path only (never `git add -A` / `.`). Never skip hooks (`--no-verify` / `-n`) — fix what they report.
 - Pushes need the sandbox off.
 - PRs are always **draft** and stay draft — the human marks them ready. Nobody marks ready, merges or approves.
 - Commit trailer: `Refs <id>` and the `Co-Authored-By` line from harness.md (default `Co-Authored-By: Claude <noreply@anthropic.com>`).

@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Self-check for bin/ scripts: bash plugins/harness/tests/run.sh (needs git, go). Exits non-zero on the first failure.
+# Self-check for bin/ scripts: bash plugins/harness/tests/run.sh (needs git, go, jq). Exits non-zero on the first failure.
 set -euo pipefail
 bin="$(cd "$(dirname "$0")/../bin" && pwd)"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 export GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@t GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@t GIT_CONFIG_GLOBAL=/dev/null
-fail() { echo "FAIL: $*"; exit 1; }
+fail() { echo "FAIL: $*" >&2; exit 1; }
 eq() { [ "$1" = "$2" ] || fail "$3: got [$1], want [$2]"; }
 
 # repo <dir> <harness.md body>: git repo with an origin, main pushed
@@ -80,5 +80,72 @@ $setup"
     eq "$rc" 0 "worktree add with [$setup] ($(cat "$tmp/err"))"
     case "$setup" in *marker*) [ -f "$wt/marker" ] || fail "setup command did not run" ;; esac
 done
+
+# --- harness-guard: PreToolUse deny in harness scope, allow outside (#15)
+R=/r; W=$R/.user/worktrees/issue-1
+# guard <cwd> <tool> <tool_input json> → the deny reason, or "" when allowed
+guard() {
+    local out
+    out=$(jq -nc --arg cwd "$1" --arg t "$2" --argjson i "$3" '{hook_event_name: "PreToolUse", cwd: $cwd, tool_name: $t, tool_input: $i}' |
+        "$bin/harness-guard") || fail "guard exit non-zero for $2 $3"
+    [ -z "$out" ] || jq -er 'select(.hookSpecificOutput.permissionDecision == "deny") | .hookSpecificOutput.permissionDecisionReason' <<<"$out" ||
+        fail "guard output not a deny: $out"
+}
+bash_in() { jq -nc --arg c "$1" '{command: $c}'; }
+file_in() { jq -nc --arg f "$1" '{file_path: $f, old_string: "a", new_string: "b"}'; }
+denies() { # denies <brief> <cwd> <tool> <input>
+    local r; r=$(guard "$2" "$3" "$4"); [ -n "$r" ] || fail "not denied: $3 $4 (cwd $2)"
+    case $r in *"$1"*) ;; *) fail "reason lacks $1: $r" ;; esac
+}
+allows() { eq "$(guard "$1" "$2" "$3")" '' "allowed: $2 $3 (cwd $1)"; }
+
+bad_bash=(
+    'git push -f origin fix/1-x' 'git push origin fix/1-x --force' 'git push --force-with-lease origin fix/1-x'
+    'git push --force-with-lease=fix/1-x:abc origin fix/1-x' 'git push -uf origin fix/1-x' 'git push origin +fix/1-x'
+    'git -C /r/.user/worktrees/issue-1 push --force' 'cd /r/.user/worktrees/issue-1 && git status && git push -f'
+    'git push "--force"' 'FOO=1 git push -f'
+    'gh pr merge 12 --squash' 'gh pr ready 12' 'gh pr review 12 --approve' 'echo x; gh pr merge 12'
+    'git commit --no-verify -m x' 'git commit -n -m x' 'git commit -anm x' 'git add a && git commit -m "x" --no-verify'
+)
+for c in "${bad_bash[@]}"; do
+    case $c in *push*) b=git-rules.md ;; gh*|*'gh pr'*) b=adapters/github.md ;; *) b=git-rules.md ;; esac
+    denies "$b" "$W" Bash "$(bash_in "$c")"
+done
+denies git-rules.md /elsewhere Bash "$(bash_in 'cd /r/.user/worktrees/issue-1 && git push -f')" # scope via command text
+denies git-rules.md /elsewhere Bash "$(bash_in 'git -C .user/worktrees/issue-1 push -f')"
+
+good_bash=(
+    'git push -u origin fix/1-x' 'git commit -m "fix: no -n or --no-verify here, git push -f"' 'git commit -m -n'
+    'git commit -F msg.txt' 'gh pr create --draft --title x' 'gh pr view 12' 'gh pr review 12 --comment -b ok'
+    'git worktree remove --force /r/.user/worktrees/issue-1' 'echo "git push -f"' 'git merge origin/main'
+    "git commit -m \"\$(cat <<'EOF'
+fix: x
+
+gh pr merge is not run here
+EOF
+)\""
+)
+for c in "${good_bash[@]}"; do allows "$W" Bash "$(bash_in "$c")"; done
+for c in "${bad_bash[@]}"; do # same calls, interactive session outside any worktree
+    case $c in *.user/worktrees*) continue ;; esac
+    allows /home/me/proj Bash "$(bash_in "$c")"
+done
+
+for f in go.mod go.sum composer.lock package-lock.json yarn.lock pnpm-lock.yaml Cargo.lock sub/dir/Gemfile.lock; do
+    for t in Edit Write MultiEdit; do denies implementer.md "$W" "$t" "$(file_in "$W/$f")"; done
+    denies implementer.md /elsewhere Write "$(file_in "$W/$f")"
+    allows /home/me/proj Edit "$(file_in "/home/me/proj/$f")"
+done
+denies implementer.md "$W" Edit "$(file_in go.mod)" # relative to cwd
+for f in "$R/.user/worktrees/_main/a.go" "$R/.user/worktrees/_main/go.mod" "$W/../_main/x" "$R/.user/worktrees/_main"; do
+    denies verifier.md "$W" Write "$(file_in "$f")"
+done
+denies verifier.md "$W" NotebookEdit "$(jq -nc --arg f "$R/.user/worktrees/_main/n.ipynb" '{notebook_path: $f}')"
+allows "$W" Edit "$(file_in "$W/a.go")"
+allows "$W" Write "$(file_in "$W/go.mod.txt")"
+allows "$W" Edit "$(file_in "$R/.user/reports/issue-1.md")"
+allows /home/me/proj Write "$(file_in "/home/me/proj/.user/worktrees-old/_main/x")"
+allows "$W" Read "$(file_in "$R/.user/worktrees/_main/go.mod")"
+eq "$(printf 'not json' | "$bin/harness-guard"; echo "rc=$?")" 'rc=0' "guard fails open on bad input"
 
 echo "ok"
