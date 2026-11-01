@@ -301,4 +301,32 @@ for c in "$evals"/*/case.yaml; do
     d="$(dirname "$c")"; [ -f "$d/scaffold.sh" ] && [ -d "$d/fixtures" ] || fail "$d lacks scaffold.sh or fixtures"
 done
 
+# --- harness-eval-diff (#27): per-case score change between the two newest runs
+# agg <dir> <startedAt> <name=score>…: an aggregate-result.json like `claude plugin eval` writes
+agg() {
+    d="$1"; at="$2"; shift 2; mkdir -p "$d"
+    printf '%s\n' "$@" | jq -R 'split("=") | {name: .[0], aggregates: {score: (.[1] | tonumber)}}' \
+        | jq -s --arg at "$at" '{schemaVersion: 1, startedAt: $at, cases: .}' > "$d/aggregate-result.json"
+}
+er="$tmp/eval-results"
+agg "$er/2026-01-02T00-00-00-000Z" 2026-01-02T00:00:00.000Z a=1 b=0.5 gone=1
+rc=0; out=$("$bin/harness-eval-diff" "$er" 2>&1) || rc=$?
+[ "$rc" != 0 ] || fail "eval-diff with one run exits non-zero ($out)"
+rc=0; out=$("$bin/harness-eval-diff" "$tmp/nope" 2>&1) || rc=$?
+[ "$rc" != 0 ] || fail "eval-diff without a results dir exits non-zero ($out)"
+# newest by startedAt, not by directory name; older third run ignored
+agg "$er/custom-out" 2026-01-03T00:00:00.000Z a=0.36 b=0.75 new=0.8 same=1
+agg "$er/2026-01-01T00-00-00-000Z" 2026-01-01T00:00:00.000Z a=0 b=0 same=0
+eq "$("$bin/harness-eval-diff" "$er" | sed -n 1p)" "$er/2026-01-02T00-00-00-000Z/aggregate-result.json → $er/custom-out/aggregate-result.json" "eval-diff header names both runs"
+eq "$("$bin/harness-eval-diff" "$er" | sed 1d)" 'a: 1.00 → 0.36  DROP
+b: 0.50 → 0.75
+new: n/a → 0.80
+same: n/a → 1.00' "eval-diff marks drops and new cases"
+agg "$er/z-latest" 2026-01-04T00:00:00.000Z a=0.355 same=0.999
+eq "$("$bin/harness-eval-diff" "$er" | sed 1d)" 'a: 0.36 → 0.36
+same: 1.00 → 1.00' "eval-diff compares rounded scores"
+printf '{"schemaVersion":2,"startedAt":"2026-01-05T00:00:00.000Z","cases":[]}' > "$er/aggregate-result.json"
+rc=0; out=$("$bin/harness-eval-diff" "$er" 2>&1) || rc=$?
+eq "$rc" 1 "eval-diff fails on an unknown result shape ($out)"
+
 echo "ok"
