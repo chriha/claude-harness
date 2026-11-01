@@ -81,6 +81,18 @@ $setup"
     case "$setup" in *marker*) [ -f "$wt/marker" ] || fail "setup command did not run" ;; esac
 done
 
+# --- harness-worktree clean: keep a fresh branch whose name had a merged PR (#10)
+rm -rf "$tmp/cl" "$tmp/cl.git"; repo "$tmp/cl" "## Tracker
+forge: github"
+mkdir -p "$tmp/fakebin"; printf '#!/bin/sh\necho '"'"'[{"state":"MERGED"}]'"'"'\n' > "$tmp/fakebin/gh"; chmod +x "$tmp/fakebin/gh"
+cd "$tmp/cl"
+"$bin/harness-worktree" add issue-2 --branch fix/2-fresh >/dev/null
+"$bin/harness-worktree" add issue-3 --branch fix/3-pushed >/dev/null
+(cd .user/worktrees/issue-3 && echo x > f && git add f && git commit -qm x && git push -qu origin fix/3-pushed)
+eq "$(PATH="$tmp/fakebin:$PATH" "$bin/harness-worktree" clean)" "issue-3 merged" "clean removes only the pushed merged branch"
+[ -d .user/worktrees/issue-2 ] || fail "fresh worktree was removed"
+[ ! -d .user/worktrees/issue-3 ] || fail "pushed merged worktree was kept"
+
 # --- harness-guard: PreToolUse deny in harness scope, allow outside (#15)
 R=/r; W=$R/.user/worktrees/issue-1
 # guard <cwd> <tool> <tool_input json> → the deny reason, or "" when allowed

@@ -97,6 +97,11 @@ clean() {
         [ -n "$state" ] || continue
 
         [ -z "$(git -C "$wt" status --porcelain)" ] || continue
+        # never pushed (no origin branch, no upstream of its own): a fresh branch that reuses the name of a merged PR, or unpushed work
+        if ! git -C "$repo" show-ref --verify --quiet "refs/remotes/origin/$branch" \
+            && [ "$(git -C "$repo" config --get "branch.$branch.merge")" != "refs/heads/$branch" ]; then
+            continue
+        fi
         if git -C "$repo" show-ref --verify --quiet "refs/remotes/origin/$branch" \
             && [ "$(git -C "$wt" rev-list --count "origin/$branch..HEAD")" != 0 ]; then
             continue
