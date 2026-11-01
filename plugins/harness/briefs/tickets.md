@@ -76,6 +76,25 @@ when the legacy side goes.
 
 A hit = a ticket that is in-flight or plan-approved and touches the same code. What happens on a hit is up to the caller.
 
+## Ticket target (every flow that files tickets: harvest, verifier, `/harness:verify`, `/harness:ticket`)
+
+Decide per ticket where the fix would live:
+- **plugin** — a plugin file (skill, brief, adapter, `bin/` script, pack, template) the project doesn't override
+  (`harness-resolve <path>` prints a path outside `<repo>`). Filed in the plugin repo **`chriha/claude-harness`** on GitHub,
+  whatever the project's tracker: run the GitHub adapter's operations with `-R chriha/claude-harness`, with the `agent-harness`
+  label added to the usual labels.
+- **project** — everything else (`CLAUDE.md`, `.claude/rules/*`, `.claude/harness.md`, a `.claude/harness/` override, a
+  test/lint/CI check in the repo). Filed via the project's tracker adapter, as usual.
+
+Rules for a plugin target:
+- **The repo is public — sanitize:** evidence is plugin file:line plus a generic description of what went wrong; no project code,
+  names, paths, URLs or ticket links (the source ticket is not linked either).
+- **Mixed ticket** (a plugin part and a project part) → split into two tickets. The project ticket's `## Reference` gets
+  `Related: chriha/claude-harness#<n>`; the public issue never links back.
+- **Duplicate and collision checks** (`search-tickets`, `harness-issues`, collision search) run in the target's tracker.
+- Refer to the created ticket by its full `chriha/claude-harness#<n>` + url, not a bare number.
+- When the working repo *is* `chriha/claude-harness`, both targets are the same tracker; no special case.
+
 ## Harness harvest (`work-on-comments`, `review --fix`)
 
 Turns review corrections into guardrails. Input: the comments resolved / findings applied in this run.
@@ -86,16 +105,11 @@ Turns review corrections into guardrails. Input: the comments resolved / finding
    - **judgment** — nothing to change; creates nothing.
 2. **Group** mechanizable/instructable items into one pattern each. No patterns → stop. Stable lowercase key
    `<guardrail-type>:<area>` (e.g. `mechanizable:session-layering`); reuse the key of an existing `agent-harness` ticket on match.
-   **Target** per pattern — where the guardrail would live:
-   - **plugin** — a plugin file (skill, brief, adapter, `bin/` script, pack, template) the project doesn't override
-     (`harness-resolve <path>` prints a path outside `<repo>`). Filed in the plugin repo **`chriha/claude-harness`** on GitHub,
-     whatever the project's tracker: run the GitHub adapter's operations with `-R chriha/claude-harness`.
-   - **project** — everything else (`CLAUDE.md`, `.claude/rules/*`, `.claude/harness.md`, a `.claude/harness/` override, a
-     test/lint/CI check in the repo). Filed via the project's tracker adapter.
-3. **Dedupe:** `harness-issues` by key (triage ones included) in the target's tracker; if nothing, retry with the pattern keywords.
+   **Target** per pattern — see "Ticket target".
+3. **Dedupe:** `harness-issues` by key (triage ones included) in the target's tracker (`-R chriha/claude-harness` for a plugin
+   target); if nothing, retry with the pattern keywords.
    A duplicate gets a `comment` with the new evidence, not a new ticket.
 4. **Confirm once:** one `AskUserQuestion` listing every new ticket and every duplicate comment with its target. File nothing without approval.
 5. **File** each approved pattern: `create-ticket` with labels `agent-harness` + `triage`, unassigned, no priority. Body:
    `Key: <key>`, `## Status` (triage, filed from review), `## Problem` (evidence, file:line), the proposed guardrail (which
-   rule file / test / brief), `## Acceptance criteria`. **Plugin target: the repo is public** — evidence is plugin file:line plus
-   a generic description of what went wrong; no project code, names, paths, URLs or ticket links.
+   rule file / test / brief), `## Acceptance criteria`. Plugin target: sanitize per "Ticket target".
