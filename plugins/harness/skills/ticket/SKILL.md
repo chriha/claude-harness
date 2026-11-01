@@ -119,6 +119,8 @@ End with: **"Approved — `/harness:work <id>` will implement the first slice."*
 ## Step 1 — Investigate (report flow)
 
 - Classify → label: `bug` (behaviour differs from intent/docs), `improvement` (existing behaviour should differ), `feature` (new).
+- **Target** (`tickets.md`, "Ticket target"): plugin file the project doesn't override → `chriha/claude-harness`, otherwise the project's
+  tracker; a mixed report is split in two. The duplicate and collision checks below run in that tracker.
 - **Duplicate check**: `search-tickets` (open and closed) with a few keyword queries; open similar ones. One already covers it →
   show it, ask: `Add to <id>` (fold the new report into its description + `## Status`, `Changed` comment, stop) / `File separately` / `Drop`.
 - Look at the code (CodeGraph first when `<repo>/.codegraph/` exists, then grep/read) and the matching docs. Bug → find the cause
@@ -170,14 +172,16 @@ Reported by the human (YYYY-MM-DD). Docs: <path>. Related: <id>
   `### Questions` — they were answered). Independent slices → offer to file them as separate tickets.
 - **Decision postponed** → `## Open questions` with the concrete options after `## Decision` (keep `Understanding:` and decisions so far).
 
-Show title, body (and plan); ask once: **"File this ticket?"** — `File (Recommended)` / `Adjust` (update, ask again).
+Show target, title, body (and plan) — a plugin target is sanitized per "Ticket target" (no project code, names, paths, URLs or ticket
+links); ask once: **"File this ticket?"** — `File (Recommended)` / `Adjust` (update, ask again).
 
 ## Step 4 — File & report
 
-- Write the body to a scratchpad file, `create-ticket` (assignee me, type label; `needs-info` for a postponed decision). No priority
+- Write the body to a scratchpad file, `create-ticket` (assignee me, type label; `needs-info` for a postponed decision; plugin target: in `chriha/claude-harness` with `-R`, plus the
+  `agent-harness` label). No priority
   label unless the human rated a bug. Missing label → `create-label` first. `Related:` lines under `## Reference`; `blockers-add` for
   `Add blocked-by` hits.
 - Plan-first → the plan is in the description **without** the `planning` label — it's approved.
-- Report: id + url, title, label, criteria count, file estimate.
+- Report: id + url (plugin target: `chriha/claude-harness#<n>`), title, label, criteria count, file estimate.
 
 End with: **"Ready — `/harness:work <id>` will pick it up."** (needs-info: **"Filed — answer it with `/harness:ticket <id>`."**)

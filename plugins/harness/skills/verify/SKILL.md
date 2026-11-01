@@ -63,8 +63,10 @@ when nothing ran. Always print the skipped count (`passed, 2 skipped`).
 
 If any criterion failed (or you noticed a defect), ask **once** with `AskUserQuestion`:
 - **Fix issues** — fix them, then re-run Steps 2–3.
-- **File as tickets** — one `create-ticket` per issue (labels `triage` + `bug`, `Related: <source id>` under `## Reference`): `## Status`
-  (triage, filed from verify), `## Problem` with the evidence, `## Acceptance criteria`.
+- **File as tickets** — one `create-ticket` per issue, in the target of `tickets.md` "Ticket target" (labels `triage` + `bug`, plus
+  `agent-harness` and a sanitized body for a plugin target; `Related: <source id>` under `## Reference` for a project target only):
+  `## Status` (triage, filed from verify), `## Problem` with the evidence, `## Acceptance criteria`. Report plugin-target tickets as
+  `chriha/claude-harness#<n>`.
 - **Ignore** — stop.
 
 Not asked when called from the implementer (unattended): return the report as-is, no fix loop, no tickets.
