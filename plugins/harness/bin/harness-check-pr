@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# Usage: harness-check-pr <repo> <branch> <report>
+# Deterministic post-check of an implementer's `done`. Prints exactly one line:
+#   CHECK_OK <pr url> | CHECK_FAIL <pr url|none>: <check>; … | CHECK_SKIPPED (forge <name>)
+# Exit 0 for OK/SKIPPED, 1 for FAIL. Checks: PR exists for the branch and is draft; description has the closing keyword or
+# reference form for the ticket (branch `<type>/<n>-<slug>`); headRefOid = origin/<branch>; report `## Tests` has a red-check
+# exit-0 line or the no-behaviour-change exemption. Env GH overrides the gh binary (tests stub it).
+set -u
+repo=${1:-}; branch=${2:-}; report=${3:-}
+if [ -z "$repo" ] || [ -z "$branch" ] || [ -z "$report" ] || ! cd "$repo" 2>/dev/null; then
+    echo "CHECK_FAIL none: usage: harness-check-pr <repo> <branch> <report>"
+    exit 1
+fi
+here="$(cd "$(dirname "$0")" && pwd)"
+gh=${GH:-gh}
+
+forge=$("$here/harness-config" key forge)
+if [ -n "$forge" ] && [ "$forge" != github ]; then
+    echo "CHECK_SKIPPED (forge $forge)"
+    exit 0
+fi
+
+fails=()
+url=none
+id=$(printf '%s' "${branch#*/}" | sed -n 's/^\([0-9][0-9]*\).*/\1/p')
+
+pr=$($gh pr view "$branch" --json url,isDraft,body,headRefOid 2>/dev/null) || pr=
+if [ -z "$pr" ]; then
+    fails+=("no PR for branch")
+else
+    url=$(printf '%s' "$pr" | jq -r '.url')
+    [ "$(printf '%s' "$pr" | jq -r '.isDraft')" = true ] || fails+=("PR is not draft")
+    if [ -z "$id" ]; then
+        fails+=("no ticket id in branch name")
+    elif ! printf '%s' "$pr" | jq -r '.body' | grep -Eiq "(close[sd]?|fix(e[sd])?|resolve[sd]?|refs?) #$id([^0-9]|$)"; then
+        fails+=("description lacks closing keyword or Refs for #$id")
+    fi
+    remote=$(git rev-parse "origin/$branch" 2>/dev/null) || remote=
+    [ -n "$remote" ] && [ "$remote" = "$(printf '%s' "$pr" | jq -r '.headRefOid')" ] || fails+=("PR head differs from origin/$branch")
+fi
+
+tests=$(awk '/^## /{on = ($0 == "## Tests"); next} on' "$report" 2>/dev/null)
+if ! printf '%s\n' "$tests" | grep -Eiq 'red-check:.*\(exit 0\)|red without the fix, green with it|no[ -]behaviou?r[ -]change'; then
+    fails+=("report ## Tests lacks red-check exit 0 or no-behaviour-change exemption")
+fi
+
+if [ ${#fails[@]} -eq 0 ]; then
+    echo "CHECK_OK $url"
+    exit 0
+fi
+out=$(printf '%s; ' "${fails[@]}")
+echo "CHECK_FAIL $url: ${out%; }"
+exit 1
