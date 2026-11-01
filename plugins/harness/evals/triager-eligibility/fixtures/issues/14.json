@@ -1,0 +1,19 @@
+{
+  "number": 14,
+  "title": "Improve the scripts",
+  "body": "Some ideas from the call last week. We should do something here.",
+  "state": "OPEN",
+  "createdAt": "2026-10-04T09:00:00Z",
+  "labels": [
+    {
+      "name": "improvement"
+    }
+  ],
+  "assignees": [
+    {
+      "login": "eval-bot"
+    }
+  ],
+  "comments": [],
+  "url": "https://github.com/eval/fixture/issues/14"
+}

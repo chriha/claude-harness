@@ -1,0 +1,19 @@
+{
+  "number": 13,
+  "title": "Fix it",
+  "body": "it does not work sometimes, please fix asap",
+  "state": "OPEN",
+  "createdAt": "2026-10-03T09:00:00Z",
+  "labels": [
+    {
+      "name": "bug"
+    }
+  ],
+  "assignees": [
+    {
+      "login": "eval-bot"
+    }
+  ],
+  "comments": [],
+  "url": "https://github.com/eval/fixture/issues/13"
+}

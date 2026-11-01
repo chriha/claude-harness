@@ -1,0 +1,33 @@
+# Harness config
+
+## Tracker
+tracker: github
+forge: github
+
+## Commands
+test: bash test.sh
+static:
+format:
+build:
+setup-worktree:
+
+## Scripts
+test_file_glob: `tests/*.sh`
+red_check_test_cmd: `bash test.sh`
+
+## Branch & commits
+branch types: fix|feature|refactor|chore|docs
+commit types: feat|fix|docs|style|refactor|perf|test|chore|ci
+max subject length: 72
+ticket id in commit subject: no
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+## Plan-first triggers
+
+## Self-check
+
+## Test conventions
+`tests/<script>.sh` holds the cases for `<script>.sh`, compared with `eq`; `test.sh` runs them all.
+
+## Never
+- Change dependencies without approval.

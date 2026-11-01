@@ -2,3 +2,4 @@
 .DS_Store
 .lanes.toml
 __pycache__/
+plugins/harness/evals/results/

@@ -252,4 +252,53 @@ rc=0; out=$("$bin/harness-check-pr" "$tmp/chk" chore/12-x "$tmp/r3") || rc=$?; e
 grep -q 'harness-check-pr' "$bin/../skills/work/SKILL.md" || fail "work skill does not run harness-check-pr"
 unset GH GH_JSON
 
+# --- evals (#27): fake gh serves fixtures and logs every call; the scaffold puts it first on PATH
+evals="$bin/../evals"
+mkdir -p "$tmp/ev/fixtures/issues"
+printf '{"number":5,"title":"t","body":"b","state":"OPEN","labels":[],"assignees":[{"login":"eval-bot"}],"comments":[]}\n' \
+    > "$tmp/ev/fixtures/issues/5.json"
+fgh() { HARNESS_EVAL_DIR="$tmp/ev" bash "$evals/_shared/fake-gh" "$@"; }
+eq "$(fgh issue view 5 --json number,title --jq .title)" 't' "fake gh issue view"
+eq "$(fgh issue view 5 --json number,title | jq -c .)" '{"number":5,"title":"t"}' "fake gh --json picks fields"
+eq "$(fgh issue list --assignee @me --state open --json number | jq -c .)" '[{"number":5}]' "fake gh issue list mine"
+eq "$(fgh api user --jq .login)" 'eval-bot' "fake gh user"
+eq "$(fgh api --paginate --slurp 'repos/{owner}/{repo}/issues/5/dependencies/blocked_by' | jq -c .)" '[[]]' "fake gh blockers"
+printf 'new body' > "$tmp/ev/b.md"; fgh issue edit 5 --add-label needs-info --body-file "$tmp/ev/b.md" >/dev/null
+eq "$(cat "$tmp/ev/bodies/5.md")" 'new body' "fake gh keeps the edited body"
+fgh issue comment 5 --body 'hi' >/dev/null
+eq "$(fgh issue view 5 --json body,labels,comments --jq '[.body, .labels[].name, .comments[].body] | join("/")')" \
+    'new body/needs-info/hi' "fake gh read-back sees the writes"
+fgh issue edit 5 --remove-label needs-info >/dev/null
+eq "$(fgh issue view 5 --jq '[.body, (.labels | length)] | join("/")')" 'new body/0' "label-only edit keeps the body"
+rc=0; fgh repo delete x 2>/dev/null || rc=$?; eq "$rc" 1 "fake gh refuses unknown commands"
+eq "$(sed -n 's/^issue edit 5 //p' "$tmp/ev/gh.log" | head -1)" "--add-label needs-info --body-file $tmp/ev/b.md" "fake gh logs calls"
+eq "$(tail -1 "$tmp/ev/gh.log")" 'repo delete x' "fake gh logs refused calls"
+
+mkdir -p "$tmp/case/fixtures/issues" "$tmp/run" "$tmp/home" "$tmp/installed"
+cp "$tmp/ev/fixtures/issues/5.json" "$tmp/case/fixtures/issues/"
+printf '#!/bin/sh\n' > "$tmp/installed/harness-resolve"; chmod +x "$tmp/installed/harness-resolve"
+(cd "$tmp/run" && PATH="$tmp/installed:$PATH" HOME="$tmp/home" bash "$evals/_shared/scaffold.sh" "$tmp/case") || fail "scaffold"
+cd "$tmp/run"
+eq "$(git status --porcelain)" '' "scaffold leaves a clean tree"
+eq "$(git rev-parse origin/main)" "$(git rev-parse HEAD)" "scaffold pushes main"
+eq "$(git symbolic-ref --short refs/remotes/origin/HEAD)" 'origin/main' "scaffold sets origin HEAD"
+grep -qF ". $tmp/run/.harness-eval/path.sh" "$tmp/home/.zshenv" || fail "scaffold hooks path.sh into .zshenv"
+p="$(PATH="$tmp/installed:$PATH"; . .harness-eval/path.sh; echo "$PATH")"
+eq "$(PATH="$p" command -v gh)" "$tmp/run/.harness-eval/bin/gh" "fake gh first on PATH"
+eq "$(PATH="$p" command -v harness-resolve)" "$bin/harness-resolve" "bin/ of the plugin under test, not an installed copy"
+eq "$(PATH="$p" gh issue view 5 --jq .title)" 't' "wrapper serves the case fixtures"
+eq "$(cat .harness-eval/gh.log)" 'issue view 5 --jq .title' "wrapper logs into the run"
+mkdir -p "$tmp/run2"
+(cd "$tmp/run2" && HOME="$tmp/home" bash "$evals/_shared/scaffold.sh" "$tmp/case") || fail "second scaffold"
+eq "$(grep -c 'path.sh' "$tmp/home/.zshenv")" '2' "one hook line per run"
+eq "$(git -C "$tmp/run2" remote get-url origin)" "$tmp/run2/.harness-eval/origin.git" "origin lives in the run, not in HOME"
+mkdir -p "$tmp/run3"; rc=0
+(cd "$tmp/run3" && HOME="$(eval echo "~$(id -un)")" bash "$evals/_shared/scaffold.sh" "$tmp/case") 2>/dev/null || rc=$?
+eq "$rc/$(ls -A "$tmp/run3")" '1/' "scaffold refuses the real home"
+mkdir -p "$tmp/ev2/fixtures/issues"
+eq "$(HARNESS_EVAL_DIR="$tmp/ev2" bash "$evals/_shared/fake-gh" issue list --assignee @me | jq -c .)" '[]' "fake gh lists no issues"
+for c in "$evals"/*/case.yaml; do
+    d="$(dirname "$c")"; [ -f "$d/scaffold.sh" ] && [ -d "$d/fixtures" ] || fail "$d lacks scaffold.sh or fixtures"
+done
+
 echo "ok"
