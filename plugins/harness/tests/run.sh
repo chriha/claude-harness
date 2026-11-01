@@ -195,7 +195,7 @@ cd "$tmp/arch"
 git -C .user/worktrees/issue-7 push -q -u origin fix/7-x
 git push -q origin --delete fix/7-x
 mkdir -p .user/reports .user/runs .user/reports/archive
-echo r > .user/reports/issue-7.md
+echo r > .user/reports/issue-7.md; touch -t 202001010000 .user/reports/issue-7.md
 echo old > .user/reports/archive/issue-1-old.md; echo old > .user/runs/old.md
 echo new > .user/reports/archive/issue-2-new.md; echo new > .user/runs/new.md
 touch -t 202001010000 .user/reports/archive/issue-1-old.md .user/runs/old.md
@@ -205,5 +205,8 @@ case "$out" in *"pruned 2"*) ;; *) fail "sync prunes 2: $out" ;; esac
 [ ! -e .user/reports/issue-7.md ] || fail "report left in place"
 eq "$(cat ".user/reports/archive/issue-7-$(date +%F).md")" r "report archived"
 [ ! -e .user/reports/archive/issue-1-old.md ] && [ ! -e .user/runs/old.md ] || fail "old files kept"
+out="$("$bin/harness-sync")"
+case "$out" in *pruned*) fail "second sync prunes nothing: $out" ;; esac
+[ -e ".user/reports/archive/issue-7-$(date +%F).md" ] || fail "archived report pruned by old mtime"
 [ -e .user/reports/archive/issue-2-new.md ] && [ -e .user/runs/new.md ] || fail "new files pruned"
 echo "ok"

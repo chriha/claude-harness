@@ -130,7 +130,7 @@ tickets or files. One line each:
 - **New triage tickets:** verifier `confirmed` (id + url), plus a one-line duplicate/invalid tally → `/harness:triage` accepts them.
 - Worktrees still around: one `git worktree list`.
 
-**Run log:** before printing, write `<repo>/.user/runs/<YYYY-MM-DD-HHMM>.md` (`mkdir -p`): Step 0 lines, the triage block, every RESULT line and the check/retry notes from the other tickets (the report's content as plain text). Local only, never committed.
+**Run log:** before printing, write `<repo>/.user/runs/<YYYY-MM-DD-HHMM>.md` (`mkdir -p`; timestamp taken once at run start; if the file exists, append): Step 0 lines, the triage block, every RESULT line and the check/retry notes from the other tickets (the report's content as plain text). Local only, never committed.
 
 End with: **"Draft PRs are open (base `<base-sha>`). Check CI, review, and mark them ready yourself. The next `/harness:work`
 run cleans up worktrees for merged/closed PRs."**

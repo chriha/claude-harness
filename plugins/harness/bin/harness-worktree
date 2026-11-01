@@ -107,6 +107,7 @@ clean() {
         if [ -f "$repo/.user/reports/$name.md" ]; then
             mkdir -p "$repo/.user/reports/archive"
             mv -f "$repo/.user/reports/$name.md" "$repo/.user/reports/archive/$name-$(date +%F).md"
+            touch "$repo/.user/reports/archive/$name-$(date +%F).md" # retention counts from archive time
         fi
         echo "$name $state"
     done
