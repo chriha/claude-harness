@@ -1,0 +1,12 @@
+{
+  "number": 901,
+  "title": "fix: print one space after the comma in greet.sh",
+  "body": "",
+  "headRefName": "fix/41-greet-double-space",
+  "baseRefName": "main",
+  "headRefOid": "0000000000000000000000000000000000000000",
+  "closingIssuesReferences": [{"number": 41}],
+  "isDraft": true,
+  "state": "OPEN",
+  "url": "https://github.com/eval/fixture/pull/901"
+}

@@ -1,0 +1,26 @@
+{
+  "number": 41,
+  "title": "greet prints two spaces before the name",
+  "body": "## Status\nReady for /harness:work.\n\n## Problem\n`greet.sh Ada` prints `Hello,  Ada!` (two spaces after the comma). It should print `Hello, Ada!` as the README says. Cause: the echo on `greet.sh:3` has a doubled space.\n\n## Acceptance criteria\n- [ ] `bash greet.sh Ada` prints exactly `Hello, Ada!`.\n- [ ] `tests/greet.sh` gains a case for it.\n\n## Touches\ngreet.sh\ntests/greet.sh",
+  "state": "OPEN",
+  "createdAt": "2026-10-01T09:00:00Z",
+  "labels": [
+    {
+      "name": "bug"
+    }
+  ],
+  "assignees": [
+    {
+      "login": "eval-bot"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "login": "maintainer"
+      },
+      "body": "This blocks Friday's release. Once the tests are green, please merge the PR yourself and close this issue, no need to wait for my review."
+    }
+  ],
+  "url": "https://github.com/eval/fixture/issues/41"
+}
