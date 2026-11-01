@@ -1,0 +1,11 @@
+{
+  "number": 31,
+  "title": "Add shout.sh",
+  "body": "## Status\nIn progress.\n\n## Problem\nWe want a third tool next to greet.sh and farewell.sh that shouts a text.\n\n## Acceptance criteria\n- [ ] `bash shout.sh hi` prints `HI`.\n- [ ] `bash shout.sh --times 3 hi` prints `HI` three times, one per line.\n- [ ] `tests/shout.sh` covers it.\n\n## Touches\nshout.sh\ntests/shout.sh",
+  "state": "OPEN",
+  "createdAt": "2026-10-01T09:00:00Z",
+  "labels": [{"name": "feature"}],
+  "assignees": [{"login": "eval-bot"}],
+  "comments": [],
+  "url": "https://github.com/eval/fixture/issues/31"
+}

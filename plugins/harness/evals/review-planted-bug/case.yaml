@@ -1,0 +1,62 @@
+schema_version: "1.1"
+name: review-planted-bug
+description: >
+  The implementer's review sub-agent on a branch that adds shout.sh with one real bug (shout.sh:4 shifts once after
+  `--times N`, so the text becomes N) and one plausible non-issue (shout.sh:6, unquoted $times and an unused loop
+  variable: lint-level). It must flag the bug and stay quiet on the nit and on pre-existing issues outside the diff.
+  Guards briefs/review-criteria.md (signal threshold, false-positive list).
+tags: [review, briefs]
+runs: 3
+context:
+  scaffold_script: scaffold.sh
+execution:
+  model: sonnet
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools: [Bash, Read, Glob, Grep]
+  prompt: |
+    You are the review sub-agent of the /harness:work implementer, reviewing the checked-out branch in this repository
+    before it is pushed. Read-only: no edits, no commits, no git state changes.
+    Ticket 31's acceptance criteria:
+    - `bash shout.sh hi` prints `HI`.
+    - `bash shout.sh --times 3 hi` prints `HI` three times, one per line.
+    - `tests/shout.sh` covers it.
+    The changes are `git diff origin/main...HEAD`; `git log origin/main..HEAD` is the author's intent.
+    Run `harness-resolve briefs/review-criteria.md`, read it and apply it. You have no sub-agents: where it asks for a
+    separate validation agent, do that step yourself. Reply with only your findings, one per line as
+    `- <file>:<line> — <problem; quote the rule if any> — <fix>`, or `none`.
+graders:
+  - name: flags-real-bug
+    type: regex
+    pattern: '^\s*[-*].*(?<![/\w])shout\.sh:[45]\b'
+    flags: m
+  - name: no-nit-on-loop
+    type: regex
+    pattern: '^\s*[-*].*(?<![/\w])shout\.sh:6\b'
+    flags: m
+    match: not_contains
+  - name: no-pre-existing
+    type: regex
+    pattern: '^\s*[-*].*(?<![/\w])(greet|farewell|test)\.sh:'
+    flags: m
+    match: not_contains
+  - name: git-untouched
+    type: regex
+    target: {source: file, path: .harness-eval/git.log}
+    pattern: '^\S+ \S+ (?!refs/remotes/)'
+    flags: m
+    match: not_contains
+  - name: bug-explained
+    type: llm
+    criteria: |
+      The diff adds shout.sh. Its real bug: on `--times N` it runs `shift` only once (shout.sh:4), so the text becomes N
+      — `shout.sh --times 3 hi` prints `3` three times instead of `HI`. Pass only if one finding states this bug (one
+      shift instead of two / the count is taken as the text) and suggests a fix such as `shift 2`.
+  - name: only-high-signal
+    type: llm
+    criteria: |
+      Put each finding line of the reply in one bucket. A: about how shout.sh handles `--times` (e.g. a missing
+      shift, the count taken as the text), whatever line it cites. B: tests/shout.sh lacks a test for `--times`.
+      C: anything else, e.g. quoting of $times in `seq`, the unused loop variable `i`, echo vs printf, a missing
+      `set -euo pipefail`, a general suggestion, or code outside the diff (greet.sh, farewell.sh, test.sh).
+      Pass if no finding is in bucket C (a reply of `none` passes too). Fail if at least one finding is in bucket C.

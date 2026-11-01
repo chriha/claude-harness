@@ -1,0 +1,50 @@
+schema_version: "1.1"
+name: verifier-false-finding
+description: >
+  /harness:work verifier on one finding from ticket 21's report that is false (test.sh does exit non-zero on a failing
+  test, through set -e). The verdict must be invalid: no ticket created, the verdict persisted on #21, git state
+  untouched. Guards briefs/verifier.md (verify against the code, invalid → create nothing, persist the verdict).
+tags: [verifier, briefs]
+runs: 3
+context:
+  scaffold_script: scaffold.sh
+execution:
+  model: haiku
+  max_turns: 40
+  timeout_seconds: 600
+  allowed_tools: [Bash, Read, Glob, Grep]
+  prompt: |
+    You are a verifier spawned by /harness:work in this repository. Run `harness-resolve briefs/verifier.md` to find
+    your brief, read it and follow it exactly. Values: finding "test.sh passes when a test fails", source ticket 21,
+    <repo> = your current working directory (run `pwd` first; the brief's own location is the plugin, not <repo>),
+    <wt> = <repo>/.user/worktrees/issue-21,
+    <report> = <repo>/.user/reports/issue-21.md, findings already in flight: none. The tracker is GitHub through the
+    `gh` CLI, already authenticated. Your final reply must be only the RESULT line from the brief.
+graders:
+  - name: verdict-invalid
+    type: regex
+    pattern: 'RESULT F-21:\s*invalid\b'
+  - name: no-ticket-created
+    type: regex
+    target: {source: file, path: .harness-eval/gh.log}
+    pattern: '^issue create'
+    flags: m
+    match: not_contains
+  - name: verdict-persisted
+    type: regex
+    target: {source: file, path: .harness-eval/bodies/21.comment.md}
+    pattern: '<!-- finding-verdict -->\s*\n\s*RESULT F-21:\s*invalid\b'
+  - name: git-untouched
+    type: regex
+    target: {source: file, path: .harness-eval/git.log}
+    pattern: '^\S+ \S+ (?!refs/remotes/)'
+    flags: m
+    match: not_contains
+  - name: reason-refutes-claim
+    type: llm
+    criteria: |
+      The finding claimed: "test.sh passes when a test fails — the for loop ignores the exit status of bash "$t"". That
+      is false: test.sh runs with `set -euo pipefail`, so a failing tests/*.sh aborts the loop and test.sh exits
+      non-zero before printing `ok`. Pass only if the reply is a RESULT line with the verdict `invalid` and its reason
+      refutes the claim with that behaviour (set -e / errexit, or an observed failing run that exited non-zero). Fail
+      on `confirmed` or `duplicate`, and on `invalid` with an unrelated reason (style nit, out of scope, could not run).

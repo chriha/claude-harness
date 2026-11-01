@@ -301,6 +301,41 @@ for c in "$evals"/*/case.yaml; do
     d="$(dirname "$c")"; [ -f "$d/scaffold.sh" ] && [ -d "$d/fixtures" ] || fail "$d lacks scaffold.sh or fixtures"
 done
 
+# case setup.sh runs before the ref log starts; afterwards every ref update the agent makes lands in git.log
+mkdir -p "$tmp/case2/fixtures" "$tmp/run4"
+printf 'git checkout -q -b side\ngit -c user.name=E -c user.email=e@x commit -q --allow-empty -m s\n' > "$tmp/case2/setup.sh"
+(cd "$tmp/run4" && HOME="$tmp/home" bash "$evals/_shared/scaffold.sh" "$tmp/case2") || fail "scaffold with setup.sh"
+cd "$tmp/run4"
+eq "$(git branch --show-current)/$(wc -c < .harness-eval/git.log | tr -d ' ')" 'side/0' "setup.sh ran; git.log starts empty"
+git status >/dev/null; git fetch -q origin
+eq "$(wc -c < .harness-eval/git.log | tr -d ' ')" '0' "read-only git leaves git.log empty"
+git -c user.name=E -c user.email=e@x commit -q --allow-empty -m t
+eq "$(awk '{print $2 " " $3}' .harness-eval/git.log)" "$(git rev-parse HEAD) refs/heads/side" "git.log records a commit"
+git checkout -q main
+eq "$(tail -1 .harness-eval/git.log | awk '{print $2 " " $3}')" 'ref:refs/heads/main HEAD' "git.log records a checkout"
+
+# verifier-false-finding: _main + the source ticket's worktree + a report whose finding is false
+mkdir -p "$tmp/run5"
+(cd "$tmp/run5" && HOME="$tmp/home" bash "$evals/verifier-false-finding/scaffold.sh") || fail "verifier scaffold"
+cd "$tmp/run5"
+eq "$(git -C .user/worktrees/_main rev-parse HEAD)/$(git -C .user/worktrees/_main branch --show-current)" \
+    "$(git rev-parse origin/main)/" "verifier: _main is a detached origin/main"
+eq "$(git -C .user/worktrees/issue-21 branch --show-current)" 'fix/21-farewell-exit-code' "verifier: source worktree"
+grep -q '^- \*\*test.sh passes when a test fails\*\*' .user/reports/issue-21.md || fail "verifier: report holds the finding"
+eq "$(git status --porcelain)/$(wc -c < .harness-eval/git.log | tr -d ' ')" '/0' "verifier: clean tree, empty git.log"
+printf 'exit 1\n' > .user/worktrees/issue-21/tests/zz.sh
+rc=0; (cd .user/worktrees/issue-21 && bash test.sh >/dev/null 2>&1) || rc=$?
+[ "$rc" != 0 ] || fail "verifier: the planted finding must stay false (test.sh fails on a failing test)"
+
+# review-planted-bug: a feature branch one commit ahead whose shout.sh keeps the planted bug and whose tests pass
+mkdir -p "$tmp/run6"
+(cd "$tmp/run6" && HOME="$tmp/home" bash "$evals/review-planted-bug/scaffold.sh") || fail "review scaffold"
+cd "$tmp/run6"
+eq "$(git branch --show-current)/$(git rev-list --count origin/main..HEAD)" 'feature/31-add-shout/1' "review: branch ahead by one"
+eq "$(git diff --name-only origin/main...HEAD | tr '\n' ' ')" 'shout.sh tests/shout.sh ' "review: diff touches only shout"
+eq "$(bash shout.sh --times 2 hi | tr '\n' ' ')" '2 2 ' "review: planted bug stays planted"
+eq "$(bash test.sh)/$(git status --porcelain)" 'ok/' "review: tests pass, clean tree"
+
 # --- harness-eval-diff (#27): per-case score change between the two newest runs
 # agg <dir> <startedAt> <name=score>…: an aggregate-result.json like `claude plugin eval` writes
 agg() {
