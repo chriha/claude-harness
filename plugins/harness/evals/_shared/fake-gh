@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+# Fake `gh` for harness evals: answers the adapter's tracker/forge operations from fixture JSON, logs every call, never
+# touches the network. Env: HARNESS_EVAL_DIR holds fixtures/ (issues/<n>.json, prs.json, prs/<n>.json, search.json,
+# labels.json, blocked_by/<n>.json), gh.log (one line per call: the arguments), bodies/ (every description and comment the
+# agent wrote, for graders) and state/ (issues as edited, so read-back after a write sees it). Unknown commands exit 1,
+# so the log shows what the agent tried. Needs jq.
+set -euo pipefail
+dir="${HARNESS_EVAL_DIR:?fake gh: HARNESS_EVAL_DIR not set}"
+fx="$dir/fixtures"
+mkdir -p "$dir/bodies" "$dir/state/issues"
+printf '%s\n' "$*" >> "$dir/gh.log"
+
+pos=() jqexpr="" fields="" body="" bodyfile="" search="" assignee="" head="" slurp="" add="" remove=""
+while [ $# -gt 0 ]; do
+    a="$1"; shift
+    case "$a" in
+        --*=*) v="${a#*=}"; a="${a%%=*}"; set -- "$a" "$v" "$@"; continue ;;
+    esac
+    case "$a" in
+        --jq|-q) jqexpr="$1"; shift ;;
+        --json) fields="$1"; shift ;;
+        --body|-b) body="$1"; shift ;;
+        --body-file|-F) bodyfile="$1"; shift ;;
+        --search|-S) search="$1"; shift ;;
+        --assignee|-a) assignee="$1"; shift ;;
+        --head|-H) head="$1"; shift ;;
+        --slurp) slurp=1 ;;
+        --add-label) add="$add,$1"; shift ;;
+        --remove-label) remove="$remove,$1"; shift ;;
+        --paginate|--draft|--web|-w|--comments|-c) ;;
+        --state|-s|--limit|-L|--label|-l|--add-assignee|--remove-assignee|--title|-t|--description|-d \
+            |--base|-B|-X|--method|-f|--field|--raw-field|-R|--repo|--color|--reason|--template) shift ;;
+        *) pos+=("$a") ;;
+    esac
+done
+
+die() { echo "fake gh: $*" >&2; exit 1; }
+or_empty() { if [ -f "$1" ]; then cat "$1"; else echo '[]'; fi; }
+save_body() { # save_body <file>: the text the agent wrote, from --body or --body-file
+    if [ -n "$bodyfile" ]; then if [ "$bodyfile" = - ]; then cat > "$1"; else cat "$bodyfile" > "$1"; fi
+    elif [ -n "$body" ]; then printf '%s' "$body" > "$1"; fi
+}
+num() { local n="${1:-}"; n="${n#\#}"; n="${n##*/}"; [[ "$n" =~ ^[0-9]+$ ]] || die "not a number: ${1:-}"; echo "$n"; }
+url="https://github.com/eval/fixture"
+issue() { # issue <n>: current JSON of an issue (state/ after a write, else the fixture)
+    if [ -f "$dir/state/issues/$1.json" ]; then cat "$dir/state/issues/$1.json"
+    elif [ -f "$fx/issues/$1.json" ]; then cat "$fx/issues/$1.json"
+    else die "could not resolve to an issue: #$1"; fi
+}
+update() { # update <n> <jq filter> [jq args…]: apply the filter to the issue and keep the result in state/
+    local n="$1" f="$2" cur; shift 2; cur="$(issue "$n")"
+    jq "$@" "$f" <<<"$cur" > "$dir/state/issues/$n.json.tmp" && mv "$dir/state/issues/$n.json.tmp" "$dir/state/issues/$n.json"
+}
+labels_json() { jq -Rc 'split(",") | map(select(. != ""))' <<<"$1"; }
+
+out=""
+case "${pos[0]:-} ${pos[1]:-}" in
+    "auth status") echo "Logged in to github.com account eval-bot (fake gh)"; exit 0 ;;
+    "api "*)
+        ep="${pos[1]:-}"
+        if [ "$ep" = user ]; then out='{"login":"eval-bot"}'
+        elif [[ "$ep" =~ issues/([0-9]+)/dependencies/blocked_by$ ]]; then
+            out="$(or_empty "$fx/blocked_by/${BASH_REMATCH[1]}.json")"
+            [ -n "$slurp" ] && out="[$out]"
+        elif [[ "$ep" =~ issues/([0-9]+)/(labels|comments)$ ]]; then out="$(issue "${BASH_REMATCH[1]}" | jq ".${BASH_REMATCH[2]}")"
+        else die "no fixture for api $ep"; fi ;;
+    "issue view") out="$(issue "$(num "${pos[2]:-}")")" ;;
+    "issue list")
+        if [ -n "$search" ]; then out="$(or_empty "$fx/search.json")"
+        else
+            out="$(for f in "$fx"/issues/*.json; do [ -f "$f" ] && issue "$(basename "$f" .json)"; done | jq -s --arg a "$assignee" \
+                '[.[] | select(.state == "OPEN") | select($a == "" or any(.assignees[]; .login == ($a | sub("^@me$"; "eval-bot")))) ]')"
+        fi ;;
+    "issue edit") n="$(num "${pos[2]:-}")"; issue "$n" >/dev/null
+        save_body "$dir/bodies/$n.md"
+        if [ -f "$dir/bodies/$n.md" ] && { [ -n "$body" ] || [ -n "$bodyfile" ]; }; then update "$n" '.body = $b' --rawfile b "$dir/bodies/$n.md"; fi
+        update "$n" '.labels = ([.labels[].name] + $a - $r | unique | map({name: .}))' \
+            --argjson a "$(labels_json "$add")" --argjson r "$(labels_json "$remove")"
+        echo "$url/issues/$n"; exit 0 ;;
+    "issue comment") n="$(num "${pos[2]:-}")"; issue "$n" >/dev/null; c="$dir/bodies/$n.comment.md"; save_body "$c.new"
+        if [ -f "$c.new" ]; then
+            update "$n" '.comments += [{author: {login: "eval-bot"}, body: $b}]' --rawfile b "$c.new"
+            cat "$c.new" >> "$c"; printf '\n' >> "$c"; rm -f "$c.new"
+        fi
+        echo "$url/issues/$n#issuecomment-1"; exit 0 ;;
+    "issue create") save_body "$dir/bodies/new-issue.md"; echo "$url/issues/900"; exit 0 ;;
+    "issue close"|"issue reopen"|"label create") exit 0 ;;
+    "label list") out="$(or_empty "$fx/labels.json")" ;;
+    "pr list") out="$(or_empty "$fx/prs.json")"
+        [ -n "$head" ] && out="$(jq --arg h "$head" '[.[] | select(.headRefName == $h)]' <<<"$out")" ;;
+    "pr view") n="$(num "${pos[2]:-}")"; [ -f "$fx/prs/$n.json" ] || die "no pull request #$n"; out="$(cat "$fx/prs/$n.json")" ;;
+    "pr create") save_body "$dir/bodies/pr.md"; echo "$url/pull/901"; exit 0 ;;
+    "pr merge"|"pr ready"|"pr edit"|"pr comment"|"pr close") exit 0 ;;
+    "repo view") out='{"name":"fixture","owner":{"login":"eval"},"nameWithOwner":"eval/fixture","defaultBranchRef":{"name":"main"},"url":"'"$url"'"}' ;;
+    *) die "unsupported command: ${pos[*]:-}" ;;
+esac
+
+if [ -n "$fields" ]; then
+    pick="{$(sed 's/,/, /g' <<<"$fields")}"
+    out="$(jq "if type == \"array\" then map($pick) else $pick end" <<<"$out")"
+fi
+if [ -n "$jqexpr" ]; then jq -r "$jqexpr" <<<"$out"; else printf '%s\n' "$out"; fi

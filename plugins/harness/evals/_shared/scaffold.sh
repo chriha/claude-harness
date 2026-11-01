@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# scaffold.sh <case dir> — builds a harness eval run in the current directory (the run cwd `claude plugin eval --scaffold`
+# gives the case's scaffold.sh): a git repo from _shared/repo plus <case>/repo, pushed to a bare origin in $HOME;
+# .harness-eval/ (git-excluded) with the case's fixtures, the fake gh, gh.log and bodies/; and a PATH that puts the fake gh
+# first. Fails if any other gh or harness-resolve would win on that PATH. Both ablation arms get that PATH (bin/ and the
+# briefs it resolves), so a no-plugin arm says nothing: run the suite with --ablation none.
+set -euo pipefail
+case_dir="$(cd "${1:?usage: scaffold.sh <case dir>}" && pwd)"
+shared="$(cd "$(dirname "$0")" && pwd)"
+run="$(pwd)"
+
+cp -R "$shared/repo/." "$run/"
+if [ -d "$case_dir/repo" ]; then cp -R "$case_dir/repo/." "$run/"; fi
+git init -q -b main
+git add -A
+git -c user.name="Eval" -c user.email="eval@example.invalid" commit -qm "initial commit"
+rm -rf "$HOME/origin.git"
+git init -q --bare "$HOME/origin.git"
+git remote add origin "$HOME/origin.git"
+git push -q origin main
+git symbolic-ref refs/remotes/origin/HEAD refs/remotes/origin/main
+
+ev="$run/.harness-eval"
+mkdir -p "$ev/bin" "$ev/bodies"
+cp -R "$case_dir/fixtures" "$ev/fixtures"
+cp "$shared/fake-gh" "$ev/fake-gh"
+: > "$ev/gh.log"
+printf '#!/usr/bin/env bash\nexport HARNESS_EVAL_DIR=%q\nexec bash %q "$@"\n' "$ev" "$ev/fake-gh" > "$ev/bin/gh"
+chmod +x "$ev/bin/gh"
+
+# PATH for the agent's shell: the fake gh, then the plugin under test's bin/ (ahead of any installed harness copy). The
+# eval's Bash tool ignores settings env but sources $HOME/.zshenv (zsh) / .bashrc (bash), so path.sh is hooked in there.
+plugin_bin="$(cd "$shared/../../bin" && pwd)"
+# macOS: /usr/bin/git is an xcrun shim that fails inside the eval sandbox; call the real binary instead.
+if [ "$(command -v git)" = /usr/bin/git ] && [ "$(uname)" = Darwin ]; then
+    for g in "$(xcode-select -p 2>/dev/null)/usr/bin/git" /Library/Developer/CommandLineTools/usr/bin/git; do
+        if [ -x "$g" ]; then printf '#!/bin/sh\nexec %q "$@"\n' "$g" > "$ev/bin/git"; chmod +x "$ev/bin/git"; break; fi
+    done
+fi
+prefix="$ev/bin:$plugin_bin"
+printf 'export PATH=%q:"$PATH"\n' "$prefix" > "$ev/path.sh"
+for rc in .zshenv .bashrc; do printf '. %q\n' "$ev/path.sh" >> "$HOME/$rc"; done
+if [ "$(PATH="$prefix:$PATH" command -v gh)" != "$ev/bin/gh" ]; then echo "scaffold: the fake gh is not first on PATH" >&2; exit 1; fi
+if [ "$(PATH="$prefix:$PATH" command -v harness-resolve)" != "$plugin_bin/harness-resolve" ]; then
+    echo "scaffold: harness-resolve does not come from the plugin under test" >&2; exit 1
+fi
+printf '.harness-eval/\n' >> .git/info/exclude

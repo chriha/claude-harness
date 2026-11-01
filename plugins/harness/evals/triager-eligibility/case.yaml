@@ -1,0 +1,74 @@
+schema_version: "1.1"
+name: triager-eligibility
+description: >
+  /harness:work triager on four assigned tickets: two ready (11, 12) must come out ELIGIBLE, two clearly unready (13, 14)
+  must get needs-info. Guards briefs/triager.md (needs-info rule, "when in doubt it's eligible") and the GitHub adapter.
+tags: [triager, briefs]
+runs: 3
+context:
+  scaffold_script: scaffold.sh
+execution:
+  model: haiku
+  max_turns: 40
+  timeout_seconds: 600
+  allowed_tools: [Bash, Read, Glob, Grep]
+  prompt: |
+    You are the triager step of /harness:work in this repository. Run `harness-resolve briefs/triager.md` to find your
+    brief, read it and follow it exactly. Values: <repo> = this directory (absolute path from `pwd`), argument: none.
+    The tracker is GitHub through the `gh` CLI, already authenticated. Your final reply must be only the RESULT block
+    from the brief.
+graders:
+  - name: used-fake-gh
+    type: regex
+    target: {source: file, path: .harness-eval/gh.log}
+    pattern: '^issue view'
+    flags: m
+  - name: eligible-11
+    type: regex
+    pattern: '^\s*#?11\s*\|'
+    flags: m
+  - name: eligible-12
+    type: regex
+    pattern: '^\s*#?12\s*\|'
+    flags: m
+  - name: not-eligible-13
+    type: regex
+    pattern: '^\s*#?13\s*\|'
+    flags: m
+    match: not_contains
+  - name: not-eligible-14
+    type: regex
+    pattern: '^\s*#?14\s*\|'
+    flags: m
+    match: not_contains
+  - name: needs-info-reported-13
+    type: regex
+    pattern: 'NEEDS_INFO:(?:(?!BLOCKED:)[\s\S])*?(?<![0-9])#?13(?![0-9])'
+  - name: needs-info-reported-14
+    type: regex
+    pattern: 'NEEDS_INFO:(?:(?!BLOCKED:)[\s\S])*?(?<![0-9])#?14(?![0-9])'
+  - name: needs-info-labelled-13
+    type: regex
+    target: {source: file, path: .harness-eval/gh.log}
+    pattern: '^issue edit #?13 .*needs-info'
+    flags: m
+  - name: needs-info-labelled-14
+    type: regex
+    target: {source: file, path: .harness-eval/gh.log}
+    pattern: '^issue edit #?14 .*needs-info'
+    flags: m
+  - name: ready-tickets-untouched
+    type: regex
+    target: {source: file, path: .harness-eval/gh.log}
+    pattern: '^issue (edit|comment|close) #?1[12]\b'
+    flags: m
+    match: not_contains
+  - name: open-questions-concrete
+    type: llm
+    focus: {source: file, path: .harness-eval/bodies/13.md}
+    criteria: |
+      This is the new description the triager wrote for ticket 13 (original body: "it does not work sometimes, please fix asap").
+      Pass only if all hold: (1) it has a `## Open questions` section with at least one concrete question about what is
+      missing (e.g. which script or command fails, what happens vs. what is expected, how to reproduce); (2) it has a
+      `## Status` section saying the ticket needs info; (3) the original problem text is still there, not rewritten
+      into invented requirements.
