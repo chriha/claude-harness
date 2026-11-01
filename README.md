@@ -61,9 +61,33 @@ for a new tracker; `harness-worktree`/`harness-sync` have a `forge` switch.
 
 `packs/laravel`, `packs/go`: `harness.md` defaults, `settings.json` allow-list, rules (laravel), githooks (laravel). See each README.
 
+## Evals
+
+`tests/run.sh` covers `bin/`; `plugins/harness/evals/` covers how agents behave under the briefs. Four
+`claude plugin eval` cases: `triager-eligibility` (ELIGIBLE vs. needs-info), `verifier-false-finding`
+(rejects a planted false finding), `implementer-draft-only` (stops at a draft PR, never merges or closes), `review-planted-bug`
+(flags a planted bug). Each case's scaffold builds a throwaway git repo with a bare `origin` and puts a fake `gh` first on PATH
+that answers from fixture JSON and logs every call, so runs stay offline; graders read that log, the git ref logs and the reply.
+
+Run by hand after editing `briefs/` or `skills/` — every run is a full Claude session, so always cap the cost:
+
+```bash
+claude plugin eval plugins/harness --scaffold --ablation none --allow-tools Bash Write Edit --max-cost-usd 5
+claude plugin eval plugins/harness --case 'triager-*' --scaffold --ablation none --allow-tools Bash --max-cost-usd 2
+plugins/harness/bin/harness-eval-diff    # per case: prev → new, DROP on a fall, n/a for a new case
+```
+
+- `--scaffold` runs the cases' `scaffold.sh` (fake `gh`, fixture repo). `--ablation none`: the scaffold puts the plugin's `bin/` on
+  PATH for both arms, so a no-plugin baseline arm would still run the plugin's helpers and briefs and show nothing.
+  `--allow-tools Bash` (plus `Write Edit` for `implementer-draft-only`) grants the gated tools the cases use.
+- Scores below 1.0 are normal (non-deterministic runs; the CLI exits 1 below `--threshold`, default 1.0). Compare runs with
+  `harness-eval-diff` (reads the two newest `aggregate-result.json` under `plugins/harness/evals/results/`, which is gitignored;
+  needs jq) rather than reading one run as pass/fail.
+- A brief/skill behaviour change updates or adds an eval case.
+
 ## Layout
 
 ```
 .claude-plugin/marketplace.json
-plugins/harness/{.claude-plugin,skills,agents,hooks,briefs,adapters,bin,packs,templates,tests,CONVENTIONS.md}
+plugins/harness/{.claude-plugin,skills,agents,hooks,briefs,adapters,bin,evals,packs,templates,tests,CONVENTIONS.md}
 ```
