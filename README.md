@@ -41,7 +41,7 @@ Invoke as `/harness:<name>`.
 
 The implementer session runs on sonnet; haiku sub-agents do the mechanical audits (Self-check over the diff, caller lookups,
 scope/size), and opus is consulted at four fixed points: an uncertain gate, writing the plan, after the 2nd failed fix attempt,
-and the sign-off on diffs over 200 changed lines or plan-approved tickets. To run the whole implementer session on opus instead,
+and the review sign-off (opus above 200 changed lines or on plan-approved tickets, sonnet otherwise). To run the whole implementer session on opus instead,
 set `implementer_model: opus` under `## Models` in `.claude/harness.md` (default `sonnet`).
 Details: `plugins/harness/CONVENTIONS.md` § Implementer models and consults.
 

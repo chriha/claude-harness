@@ -50,6 +50,7 @@ not to happen:
 - A new hard rule → add it to the brief **and** to `harness-guard` with a test (and to `deny` when a permission pattern can express it).
 
 ## Implementer models and consults
+Target contract; `harness-candidates`, the triager, `/harness:work` and the implementer brief adopt it in #34's later slices.
 The implementer session runs on **sonnet** and is the only agent that writes code. `implementer_model: opus` in harness.md
 § Models opts a project in to a whole-session opus implementer (default `sonnet`; nothing else picks opus for the session — not
 plan-approved rows, not the triager). The session calls short-lived consult sub-agents; each prompt carries the ticket, the
@@ -65,7 +66,8 @@ specific question, the relevant findings and the diff — never the session tran
      The `checks-red` retry respawns the implementer on opus only when this consult already ran.
   4. **Sign-off** — replaces the per-finding validators of the review step: gets both reviewers' merged findings and the diff,
      drops false positives, adds misses, and does one short re-check after the fix commit. Opus when changed lines > 200 (the
-     `/code-review` level cutoff) or the ticket is plan-approved; sonnet otherwise.
+     review step's count after `exclude_from_size`, same cutoff as the `/code-review` level) or the ticket is plan-approved;
+     sonnet otherwise.
 - The report's `## Review` records each consult (role, model, trigger) and its token use next to the review sub-agents' tokens;
   `harness-retro` counts them.
 
