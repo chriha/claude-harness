@@ -186,4 +186,34 @@ jq -e '[.permissions.deny[] | test("^[A-Za-z]+\\(.+\\)$")] | all' "$base" >/dev/
 grep -q '`deny`' "$bin/../skills/init/SKILL.md" || fail "init step 5 does not merge deny"
 grep -q 'missing deny' "$bin/../skills/doctor/SKILL.md" || fail "doctor does not flag missing deny entries"
 
+# --- harness-check-pr (#12): report check + stubbed gh
+repo "$tmp/chk" '## Tracker
+forge: github'
+cd "$tmp/chk"
+git checkout -qb chore/12-x && git commit -q --allow-empty -m c && git push -q origin chore/12-x
+head=$(git rev-parse HEAD)
+cat > "$tmp/gh" <<STUB
+#!/usr/bin/env bash
+printf '%s' "\$GH_JSON"
+STUB
+chmod +x "$tmp/gh"
+export GH="$tmp/gh"
+GH_JSON="{\"url\":\"u\",\"isDraft\":true,\"body\":\"Closes #12\",\"headRefOid\":\"$head\"}"; export GH_JSON
+printf '## Tests\nred-check: red without the fix, green with it (exit 0)\n## Review\n' > "$tmp/r1"
+printf '## Tests\nNo behaviour change, exempt.\n' > "$tmp/r2"
+printf '## Tests\nran tests\n' > "$tmp/r3"
+rc=0; out=$("$bin/harness-check-pr" "$tmp/chk" chore/12-x "$tmp/r1") || rc=$?; eq "$out/$rc" "CHECK_OK u/0" "exit-0 line"
+rc=0; out=$("$bin/harness-check-pr" "$tmp/chk" chore/12-x "$tmp/r2") || rc=$?; eq "$out/$rc" "CHECK_OK u/0" "exemption"
+rc=0; out=$("$bin/harness-check-pr" "$tmp/chk" chore/12-x "$tmp/r3") || rc=$?
+eq "$out/$rc" "CHECK_FAIL u: report ## Tests lacks red-check exit 0 or no-behaviour-change exemption/1" "both missing"
+GH_JSON="{\"url\":\"u\",\"isDraft\":false,\"body\":\"x\",\"headRefOid\":\"abc\"}"
+rc=0; out=$("$bin/harness-check-pr" "$tmp/chk" chore/12-x "$tmp/r1") || rc=$?
+eq "$out/$rc" "CHECK_FAIL u: PR is not draft; description lacks closing keyword or Refs for #12; PR head differs from origin/chore/12-x/1" "pr checks"
+GH_JSON=""; rc=0; out=$("$bin/harness-check-pr" "$tmp/chk" chore/12-x "$tmp/r1") || rc=$?
+eq "$out/$rc" "CHECK_FAIL none: no PR for branch/1" "no PR"
+printf 'forge: gitlab\n' > "$tmp/chk/.claude/harness.md"
+rc=0; out=$("$bin/harness-check-pr" "$tmp/chk" chore/12-x "$tmp/r3") || rc=$?; eq "$out/$rc" "CHECK_SKIPPED (forge gitlab)/0" "other forge"
+grep -q 'harness-check-pr' "$bin/../skills/work/SKILL.md" || fail "work skill does not run harness-check-pr"
+unset GH GH_JSON
+
 echo "ok"

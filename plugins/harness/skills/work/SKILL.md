@@ -116,12 +116,14 @@ finding precision from them). New triage tickets are **not** worked in this run.
 
 ## Step 4 — Report
 
-Wait for every implementer and verifier. Build the report **only from RESULT lines, Step 0's lists and the triage block** — don't open
-tickets or files. One line each:
+Wait for every implementer and verifier. For each implementer `done` RESULT, run `harness-check-pr <repo> <branch> <report>` (shell,
+one output line; don't open the report yourself). `CHECK_FAIL` → treat the result as `partial` and list it under **Partial** with the
+failed checks; `CHECK_OK` / `CHECK_SKIPPED` → unchanged. Build the report **only from RESULT lines, the check lines, Step 0's lists and
+the triage block** — don't open tickets or files. One line each:
 
 - **Cleaned up:** Step 0's cleaned-up tickets.
-- **Draft PRs:** implementer `done`, with PR url.
-- **Partial / blocked / held:** implementer `partial`/`blocked`, triage `BLOCKED`/`HELD` (with the user's choice, if asked), with the draft PR url where there is one.
+- **Draft PRs:** implementer `done` that passed the check (or was skipped), with PR url.
+- **Partial / blocked / held:** implementer `partial`/`blocked`, a `done` that got `CHECK_FAIL` (with the failed checks), triage `BLOCKED`/`HELD` (with the user's choice, if asked), with the draft PR url where there is one.
 - **Stacked:** each chain as `A → B → C` with PR urls, *chain stopped at <id>* where it stopped. Merge stacked PRs **in chain order**. Plus Step 0's `UNSTACK_CONFLICT` lines (need a manual merge of the default branch).
 - **Planned:** implementer `planned` → `/harness:ticket <id>` to answer its questions and approve it.
 - **Needs info:** triage `NEEDS_INFO` plus implementer `needs-info` → `/harness:ticket <id>` answers the open questions and removes `needs-info`.
