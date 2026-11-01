@@ -29,12 +29,13 @@ Skills and briefs resolve every overridable file through `harness-resolve`, so a
 
 ## Skills
 
-`init` · `doctor` · `ticket` · `work` · `review` · `work-on-comments` · `verify` · `harness-retro` · `arch-loop`
+`init` · `doctor` · `ticket` · `triage` · `work` · `review` · `work-on-comments` · `verify` · `harness-retro` · `arch-loop`
 Invoke as `/harness:<name>`.
 
 ## Platforms
 
-`adapters/github.md` ships. Add GitLab/Linear/Jira by copying `adapters/_template.md` (to the plugin for all projects, or to
+`adapters/github.md` (tracker + forge) and `adapters/linear.md` (tracker, via the Linear MCP server; `ticket`/`triage` work there; `/harness:work`
+needs a Linear class in `harness-candidates` first) ship. Add GitLab/Jira by copying `adapters/_template.md` (to the plugin for all projects, or to
 `<repo>/.claude/harness/adapters/` for one) and setting `tracker:` / `forge:` in harness.md. `harness-candidates` has a `GitHub` class to mirror
 for a new tracker; `harness-worktree`/`harness-sync` have a `forge` switch.
 

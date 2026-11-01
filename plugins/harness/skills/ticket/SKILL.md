@@ -1,9 +1,8 @@
 ---
 name: ticket
-description: Report a bug, change request or feature and file it as a ready ticket for /harness:work — or pass a ticket id to answer a needs-info ticket's open questions / finalize and approve a planning ticket's plan
-argument-hint: "[free text | ticket id]"
-disable-model-invocation: true
-allowed-tools: Read, Grep, Glob, AskUserQuestion, Bash(ls:*), Bash(cat:*), Bash(grep:*), Bash(find:*), Bash(date:*), Bash(harness-*:*), Bash(gh issue:*), Bash(gh pr list:*), Bash(gh api:*), Bash(gh label:*), mcp__codegraph__codegraph_explore
+description: Report a bug, change request or feature and file it as a ready ticket for /harness:work — or pass a ticket id to refine a triage ticket, answer a needs-info ticket's open questions, or finalize and approve a planning ticket's plan
+argument-hint: "[free text | ticket id [--triage-notes <file>]]"
+allowed-tools: Read, Grep, Glob, AskUserQuestion, Bash(ls:*), Bash(cat:*), Bash(grep:*), Bash(find:*), Bash(date:*), Bash(harness-*:*), Bash(gh issue:*), Bash(gh pr list:*), Bash(gh api:*), Bash(gh label:*), mcp__linear, mcp__codegraph__codegraph_explore
 ---
 
 Turn something the human reports — a **bug**, a **change request** or a **new feature** — into an actionable ticket that
@@ -14,12 +13,32 @@ Plan-first criteria and plan format: `harness-resolve briefs/implementer.md` ("G
 **This skill writes no application code, runs no tests, and never touches git.** It only writes to the tracker.
 
 Argument:
-- **A ticket id** → `read-ticket`, then by label: `needs-info` → **resume mode**; `planning` → **plan mode** (both below). Neither
-  label → say what it is and stop without writing (closed → nothing to do).
+- **A ticket id** → `read-ticket`, then: triage (label `triage`, or what the adapter calls triage) → **triage mode**; `needs-info` →
+  **resume mode**; `planning` → **plan mode** (all below). None of these → say what it is and stop without writing (closed → nothing to do).
 - **Free text** → the report flow, Steps 1–4.
 - **Omitted** → ask via `AskUserQuestion` (options `Bug` / `Change request` / `Feature` / `Plan a ticket`; details via "Other" or a
   follow-up). `Plan a ticket` → `list-tickets` (mine, open) with `planning`, highest priority first then oldest; none → say so and
   stop, else plan mode on the first.
+
+## Triage mode — refine a triage ticket
+
+Usually invoked by `/harness:triage` with `--triage-notes <file>` (scorecard, verified evidence, the human's decided answers, what's still
+open); also works standalone. Rubric: `harness-resolve briefs/triage-criteria.md`.
+
+- Read description and comments in full and the notes file. **Decided answers are final — don't re-ask them.** No notes → investigate
+  as Step 1 (verify the evidence, duplicate + collision check) and brief (≤ 10 lines) with the scorecard.
+- Ask what is still open and every rubric gap the answers don't settle, as in Step 2; confirm understanding (Step 2b).
+- Draft the content sections in the Step 3 shape: `## Problem` (fix it to the verified evidence — an agent wrote it, the human owns it
+  from this approval on), `## Decision` (`Understanding:` + one bullet per decided answer, alternatives rejected and why),
+  `## Acceptance criteria` (testable, incl. tests), `## Touches`, `## Reference` (`Related:` lines). Fold `## Open questions` the answers
+  close. Plan-first → add `## Plan` as in Step 3. "Split" → `create-ticket` per carved-out part (labels `triage` + type, unassigned,
+  `## Reference` back to this ticket).
+- `## Status` = `Triage — refined (YYYY-MM-DD), awaiting acceptance.` Type label fixed if an answer changed it.
+- Show the draft; ask once: **"Update this ticket?"** — `Update (Recommended)` / `Adjust`. Then `edit-description` and a `Changed` comment.
+- **Never** remove `triage`, assign, set priority or change state — acceptance is `/harness:triage`'s.
+
+Invoked by `/harness:triage` → end with one line `REFINED: <id> — <sections changed>` (or `NOT REFINED: <id> — <why>`) and return.
+Standalone → end with: **"Refined — accept it with `/harness:triage <id>`."**
 
 ## Resume mode — answer a `needs-info` ticket
 

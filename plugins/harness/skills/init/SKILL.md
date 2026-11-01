@@ -1,7 +1,7 @@
 ---
 name: init
 description: Set up the harness in the current repo — detect stack, forge and tracker, write .claude/harness.md, copy the stack pack once, merge permissions, and offer to remove stale per-project copies of the pipeline
-argument-hint: "[--stack laravel|go|none] [--tracker github]"
+argument-hint: "[--stack laravel|go|none] [--tracker github|linear]"
 disable-model-invocation: true
 allowed-tools: Read, Write, Edit, Grep, Glob, AskUserQuestion, Bash(ls:*), Bash(cat:*), Bash(cp:*), Bash(mkdir:*), Bash(chmod:*), Bash(diff:*), Bash(jq:*), Bash(git remote:*), Bash(git rev-parse:*), Bash(git status:*), Bash(git check-ignore:*), Bash(harness-*:*)
 ---
@@ -12,8 +12,10 @@ already owns without asking. Plugin root (read-only source): `${CLAUDE_PLUGIN_RO
 1. **Detect** (read, don't ask when obvious):
    - Stack: `composer.json` with `laravel/framework` → `laravel`; `go.mod` → `go`; else `none` (a `--stack` argument wins).
      Package manager, scripts (`composer.json` scripts, `Makefile`, `package.json` scripts, `justfile`) → candidate commands.
-   - Forge: `git remote get-url origin` host (github.com → `github`, gitlab → `gitlab`). Tracker: default = forge's issues. Only
-     `adapters/github.md` ships; for anything else say so, offer to copy `adapters/_template.md` to `.claude/harness/adapters/<name>.md`
+   - Forge: `git remote get-url origin` host (github.com → `github`, gitlab → `gitlab`). Tracker: default = forge's issues; a `--tracker`
+     argument wins; a Linear MCP server in the session or `.mcp.json` → ask GitHub issues vs. Linear. `adapters/github.md` and
+     `adapters/linear.md` (tracker only; forge from the remote) ship — Linear also needs `linear_mcp:`, `linear_team:` (ask; `list_teams`
+     offers the keys). For anything else say so, offer to copy `adapters/_template.md` to `.claude/harness/adapters/<name>.md`
      and fill it in with me, and continue with the rest.
    - Existing setup: `CLAUDE.md`, `AGENTS.md`, `.claude/commands|rules|skills|work-tickets|review-criteria.md`, `.githooks`, `.mcp.json`,
      `boost.json` / `.ai/guidelines` (Laravel Boost generates `CLAUDE.md` — never hand-edit it; project text goes into `.ai/guidelines/`).

@@ -3,7 +3,8 @@
 Platform commands live in the **adapter** (`harness-resolve adapters/<tracker>.md`, tracker from harness.md § Tracker).
 Below, operations are named in `code style` — look them up there. Tickets are referenced as the adapter says (`#nnn`, `EQD-nnn`, …).
 `/harness:work` works the open tickets **assigned to me**. A PR closes its ticket through the adapter's closing
-keyword — **no agent ever closes a ticket or changes its assignee/status.**
+keyword — **no agent ever closes a ticket or changes its assignee/status** (sole exception: `/harness:triage`, carrying out the
+human's decision).
 
 Labels (names per adapter) that steer the pipeline:
 
@@ -12,9 +13,10 @@ Labels (names per adapter) that steer the pipeline:
 | `on hold`, `ready-for-human` | not for agents | human |
 | `needs-info` | `## Open questions` in the description | `/harness:ticket <id>`, after answering |
 | `planning` | a `## Plan` awaits approval | human — removing it approves the plan |
+| `triage` | found by an agent, not yet accepted (Linear: also the Triage state) | `/harness:triage` on accept (or the human) |
 
-Type labels: `bug`, `feature`, `improvement`. Priority: adapter scheme (none sorts last). Other: `triage` (found by an
-agent, not yet accepted), `agent-harness`.
+Type labels: `bug`, `feature`, `improvement`. Priority: adapter scheme (none sorts last). Other: `agent-harness`.
+Accepted = `triage` removed, assigned to me, priority set (`/harness:triage`, rubric `briefs/triage-criteria.md`).
 
 **Body (description)** — the full, **current** state of the ticket, rewritten in place (the tracker keeps the edit
 history). Sections, in this order, omitting empty optional ones:
@@ -34,7 +36,7 @@ history). Sections, in this order, omitting empty optional ones:
 A ticket without a clear problem and testable acceptance criteria is not ready.
 
 **Requirements are human-owned.** On an existing ticket, `## Problem`, `## Decision` and `## Acceptance criteria` change
-only through an interactive skill whose draft the human approves (`ticket`, `answer-tickets`). Autonomous
+only through an interactive skill whose draft the human approves (`ticket`, incl. its triage mode). Autonomous
 agents (triager, implementer, verifier) write only `## Status`, `## Open questions`, `## Touches`, `## Plan`, `## Outcome`.
 If a requirement looks wrong, adjust the solution or go **needs-info** with an open question; never fit the requirement to
 the solution. Creating a new ticket writes all sections.
