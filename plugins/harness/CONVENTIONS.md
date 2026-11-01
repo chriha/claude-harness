@@ -28,7 +28,7 @@ read-ticket, list-tickets, list-triage, edit-description-section, comment, add/r
 `adapters/_template.md` lists every operation to fill in for a new platform.
 
 ## Paths
-`<repo>` main checkout (absolute) · `<wt>` = `<repo>/.user/worktrees/issue-<id>` · `<report>` = `<repo>/.user/reports/issue-<id>.md` · `.user/` is gitignored (init ensures it).
+`<repo>` main checkout (absolute) · `<wt>` = `<repo>/.user/worktrees/issue-<id>` · `<report>` = `<repo>/.user/reports/issue-<id>.md` · run log `<repo>/.user/runs/<YYYY-MM-DD-HHMM>.md` (one per `/harness:work` run) · cleaned tickets' reports move to `<repo>/.user/reports/archive/issue-<id>-<YYYY-MM-DD>.md` · `harness-sync` prunes `.user/runs/` and `.user/reports/archive/` files older than 90 days · `.user/` is gitignored (init ensures it).
 
 ## Hard rules are enforced in code
 A brief states a rule; a hard rule (one that must never be broken) also gets a check, so a violating call is refused, not trusted

@@ -3,7 +3,7 @@
 # Worktree tool for the ticket pipeline (worktrees live under <repo>/.user/worktrees).
 # Usage:  harness-worktree add <issue-nnn> [<base>] [--branch <name>]   create (or reuse) the ticket worktree
 #         harness-worktree add _main                                    create/refresh the detached origin/<default> reference worktree
-#         harness-worktree clean                                        remove worktrees whose PR/MR is merged/closed or whose branch is deleted on origin
+#         harness-worktree clean                                        remove worktrees whose PR/MR is merged/closed or whose branch is deleted on origin (report moves to .user/reports/archive/)
 # `add` prints the worktree path. `clean` prints `issue-nnn merged|closed|deleted` per removal.
 # A new branch needs --branch; a continuing one (local or on origin, named <type>/nnn-*) is found by itself.
 # Forge = `forge:` in .claude/harness.md (github default, gitlab).
@@ -104,7 +104,10 @@ clean() {
 
         git -C "$repo" worktree remove --force "$wt"
         git -C "$repo" branch -D "$branch" >/dev/null
-        rm -f "$repo/.user/reports/$name.md"
+        if [ -f "$repo/.user/reports/$name.md" ]; then
+            mkdir -p "$repo/.user/reports/archive"
+            mv -f "$repo/.user/reports/$name.md" "$repo/.user/reports/archive/$name-$(date +%F).md"
+        fi
         echo "$name $state"
     done
 }

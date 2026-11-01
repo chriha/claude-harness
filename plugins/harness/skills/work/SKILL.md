@@ -74,13 +74,13 @@ Once a base PR is merged, Step 0 moves the stacked PR onto the default branch.
 ## Step 0 — Sync (orchestrator, shell only)
 
 Run `harness-sync <repo>` once and keep its lines for the report. It fetches/prunes, removes worktrees (plus branch and report) of
-merged/closed PRs or branches deleted on origin (`issue-nnn merged|closed|deleted`), unstacks PRs whose base merged
+merged/closed PRs or branches deleted on origin (`issue-nnn merged|closed|deleted`; the report is archived to `.user/reports/archive/`, not deleted), prunes archived reports and run logs older than 90 days (`pruned <n>`), unstacks PRs whose base merged
 (`UNSTACKED: <url>`; a conflict, missing worktree or closed base prints `UNSTACK_CONFLICT: <url> …`), and refreshes `.user/worktrees/_main`.
 
 ## Step 1 — Triage (one triager)
 
 Spawn one **triager** (`model: "haiku"`) with `<repo>` and the argument verbatim (if any). Wait. Keep `BASE_SHA`. Print Step 0's
-lists plus the triager's block, lightly formatted. With `--dry-run`, stop.
+lists plus the triager's block, lightly formatted. With `--dry-run`, first write the run log (Step 4: Step 0 lines + triage block only), then stop.
 
 ### Blocked argument tickets — ask instead of dropping
 
@@ -129,6 +129,8 @@ tickets or files. One line each:
 - **Not started (budget):** with `--budget N`, the eligible tickets (and chain remainders) never started.
 - **New triage tickets:** verifier `confirmed` (id + url), plus a one-line duplicate/invalid tally → `/harness:triage` accepts them.
 - Worktrees still around: one `git worktree list`.
+
+**Run log:** before printing, write `<repo>/.user/runs/<YYYY-MM-DD-HHMM>.md` (`mkdir -p`): Step 0 lines, the triage block, every RESULT line and the check/retry notes from the other tickets (the report's content as plain text). Local only, never committed.
 
 End with: **"Draft PRs are open (base `<base-sha>`). Check CI, review, and mark them ready yourself. The next `/harness:work`
 run cleans up worktrees for merged/closed PRs."**
