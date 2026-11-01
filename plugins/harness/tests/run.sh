@@ -311,6 +311,8 @@ git status >/dev/null; git fetch -q origin
 eq "$(wc -c < .harness-eval/git.log | tr -d ' ')" '0' "read-only git leaves git.log empty"
 git -c user.name=E -c user.email=e@x commit -q --allow-empty -m t
 eq "$(awk '{print $2 " " $3}' .harness-eval/git.log)" "$(git rev-parse HEAD) refs/heads/side" "git.log records a commit"
+git checkout -q main
+eq "$(tail -1 .harness-eval/git.log | awk '{print $2 " " $3}')" 'ref:refs/heads/main HEAD' "git.log records a checkout"
 
 # verifier-false-finding: _main + the source ticket's worktree + a report whose finding is false
 mkdir -p "$tmp/run5"

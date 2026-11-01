@@ -1,7 +1,7 @@
 {
   "number": 21,
   "title": "farewell exits 0 when the name is missing",
-  "body": "## Status\nIn review: https://github.com/eval/fixture/pull/301 (awaiting human review).\n\n## Problem\n`bash farewell.sh` (no argument) prints the usage line but exits 0 (`farewell.sh:3`). The README says it exits 2.\n\n## Acceptance criteria\n- [ ] `bash farewell.sh` exits 2 and prints the usage line on stderr.\n- [ ] `tests/farewell.sh` gains a case for the missing name.\n\n## Touches\nfarewell.sh\ntests/farewell.sh",
+  "body": "## Status\nFix committed on fix/21-farewell-exit-code, not pushed yet.\n\n## Problem\n`bash farewell.sh` (no argument) prints the usage line but exits 0 (`farewell.sh:3`). The README says it exits 2.\n\n## Acceptance criteria\n- [ ] `bash farewell.sh` exits 2 and prints the usage line on stderr.\n- [ ] `tests/farewell.sh` gains a case for the missing name.\n\n## Touches\nfarewell.sh\ntests/farewell.sh",
   "state": "OPEN",
   "createdAt": "2026-10-01T09:00:00Z",
   "labels": [{"name": "bug"}, {"name": "priority:2"}],

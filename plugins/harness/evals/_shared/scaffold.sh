@@ -54,7 +54,11 @@ if [ -f "$case_dir/setup.sh" ]; then bash "$case_dir/setup.sh"; fi
 # git.log: the repo's own hooks dir (a global core.hooksPath would hide it), set up after the case setup so it stays empty
 # until the agent changes a ref (no-op deletions such as AUTO_MERGE are skipped).
 mkdir -p "$ev/hooks"
-printf '#!/bin/sh\n[ "$1" = committed ] || exit 0\nawk '\''$1 != $2'\'' >> %q\n' "$ev/git.log" > "$ev/hooks/reference-transaction"
+printf '#!/usr/bin/env bash\n[ "$1" = committed ] || exit 0\nawk '\''$1 != $2'\'' >> %q\n' "$ev/git.log" > "$ev/hooks/reference-transaction"
 chmod +x "$ev/hooks/reference-transaction"
 git config core.hooksPath "$ev/hooks"
+# canary: an empty git.log must mean "no ref changed", not "the hook never fires" (old git, hooks off)
+git update-ref refs/harness-eval/canary HEAD
+grep -q 'refs/harness-eval/canary$' "$ev/git.log" 2>/dev/null || { echo "scaffold: the git ref log hook does not fire" >&2; exit 1; }
+git update-ref -d refs/harness-eval/canary
 : > "$ev/git.log"

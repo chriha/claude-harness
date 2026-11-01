@@ -32,7 +32,7 @@ graders:
     flags: m
   - name: no-nit-on-loop
     type: regex
-    pattern: '^\s*[-*].*(?<![/\w])shout\.sh:[678]\b'
+    pattern: '^\s*[-*].*(?<![/\w])shout\.sh:6\b'
     flags: m
     match: not_contains
   - name: no-pre-existing
