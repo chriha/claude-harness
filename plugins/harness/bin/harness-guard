@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # harness-guard — PreToolUse hook (hooks/hooks.json): enforces the briefs' hard rules in code instead of prompts.
-# Reads the hook JSON on stdin. Only harness-scoped calls are checked: the session cwd, a Bash command's text or a file tool's
-# target lies under `<repo>/.user/worktrees/`. A violation prints a PreToolUse `deny` with a reason naming the rule and its
+# Reads the hook JSON on stdin. Only harness-scoped calls are checked: the caller is a plugin agent (`agent_type` harness:*,
+# set by Claude Code for sub-agent calls), or the session cwd, a Bash command's text or a file tool's target lies under
+# `<repo>/.user/worktrees/`. A violation prints a PreToolUse `deny` with a reason naming the rule and its
 # brief; anything else exits 0 without output (normal permission flow). Fails open when jq is missing or the input is unreadable.
 # Not a sandbox: it matches the command text, so it stops mistakes, not an agent set on evading it.
 export LC_ALL=C # byte-wise substrings: the tokeniser stays linear
@@ -9,6 +10,7 @@ command -v jq >/dev/null 2>&1 || exit 0
 input=$(cat)
 tool=$(jq -r '.tool_name // empty' <<<"$input" 2>/dev/null) || exit 0
 cwd=$(jq -r '.cwd // empty' <<<"$input")
+case $(jq -r '.agent_type // empty' <<<"$input") in harness:*) agent=1 ;; *) agent=0 ;; esac
 WT=/.user/worktrees/
 
 deny() {
@@ -36,7 +38,7 @@ norm() {
 check_file() {
     local f
     f=$(norm "$1")
-    case $f in *"$WT"*) ;; *) return 0 ;; esac
+    case $agent$f in 1* | *"$WT"*) ;; *) return 0 ;; esac
     case $f in *"${WT}_main" | *"${WT}_main/"*)
         deny "write under .user/worktrees/_main refused — it is the read-only checkout of the default branch; edit only inside your <wt> (briefs/implementer.md: \"Work only inside <wt>\", briefs/verifier.md: \"Read-only\")" ;;
     esac
@@ -146,7 +148,7 @@ case $tool in
         [ -n "$f" ] && check_file "$f" ;;
     Bash)
         cmd=$(jq -r '.tool_input.command // empty' <<<"$input")
-        case $cwd/ in *"$WT"*) ;; *) case $cmd in *.user/worktrees/*) ;; *) exit 0 ;; esac ;; esac
+        case $agent$cwd/ in 1* | *"$WT"*) ;; *) case $cmd in *.user/worktrees/*) ;; *) exit 0 ;; esac ;; esac
         check_bash "$cmd" ;;
 esac
 exit 0

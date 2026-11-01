@@ -86,7 +86,8 @@ R=/r; W=$R/.user/worktrees/issue-1
 # guard <cwd> <tool> <tool_input json> → the deny reason, or "" when allowed
 guard() {
     local out
-    out=$(jq -nc --arg cwd "$1" --arg t "$2" --argjson i "$3" '{hook_event_name: "PreToolUse", cwd: $cwd, tool_name: $t, tool_input: $i}' |
+    out=$(jq -nc --arg cwd "$1" --arg t "$2" --argjson i "$3" --arg a "${AGENT:-}" \
+        '{hook_event_name: "PreToolUse", cwd: $cwd, tool_name: $t, tool_input: $i} + if $a == "" then {} else {agent_type: $a, agent_id: "a1"} end' |
         "$bin/harness-guard") || fail "guard exit non-zero for $2 $3"
     [ -z "$out" ] || jq -er 'select(.hookSpecificOutput.permissionDecision == "deny") | .hookSpecificOutput.permissionDecisionReason' <<<"$out" ||
         fail "guard output not a deny: $out"
@@ -147,5 +148,32 @@ allows "$W" Edit "$(file_in "$R/.user/reports/issue-1.md")"
 allows /home/me/proj Write "$(file_in "/home/me/proj/.user/worktrees-old/_main/x")"
 allows "$W" Read "$(file_in "$R/.user/worktrees/_main/go.mod")"
 eq "$(printf 'not json' | "$bin/harness-guard"; echo "rc=$?")" 'rc=0' "guard fails open on bad input"
+
+# agent-type scope: harness:* sub-agents are checked anywhere; other agent types only by path (as above)
+for c in "${bad_bash[@]}"; do AGENT=harness:implementer denies harness-guard /home/me/proj Bash "$(bash_in "$c")"; done
+AGENT=harness:verifier denies implementer.md /home/me/proj Edit "$(file_in /home/me/proj/go.mod)"
+AGENT=harness:triager allows /home/me/proj Bash "$(bash_in 'gh issue edit 3 --add-label needs-info')"
+AGENT=harness:implementer allows /home/me/proj Edit "$(file_in /home/me/proj/a.go)"
+for c in "${bad_bash[@]}"; do
+    case $c in *.user/worktrees*) continue ;; esac
+    AGENT=general-purpose allows /home/me/proj Bash "$(bash_in "$c")"
+done
+
+# --- plugin agents (#15): read-only roles can't edit; /harness:work spawns them
+agents="$(cd "$bin/../agents" && pwd)"
+fm() { sed -n '2,/^---$/p' "$agents/$1.md"; } # frontmatter
+for a in triager verifier implementer; do
+    [ -f "$agents/$a.md" ] || fail "agents/$a.md missing"
+    fm "$a" | grep -qx "name: $a" || fail "agents/$a.md name"
+done
+for a in triager verifier; do
+    d=$(fm "$a" | sed -n 's/^disallowedTools: //p')
+    for t in Edit Write MultiEdit NotebookEdit; do case ", $d," in *", $t,"*) ;; *) fail "agents/$a.md does not disallow $t" ;; esac; done
+    fm "$a" | grep -q '^tools:' && fail "agents/$a.md: use disallowedTools, not tools (keeps MCP tools)"
+done
+fm implementer | grep -q '^disallowedTools:' && fail "implementer must keep its edit tools"
+work="$bin/../skills/work/SKILL.md"
+grep -q 'subagent_type: "general-purpose"' "$work" && fail "work skill still spawns general-purpose"
+for a in triager implementer verifier; do grep -q "harness:$a" "$work" || fail "work skill does not spawn harness:$a"; done
 
 echo "ok"
