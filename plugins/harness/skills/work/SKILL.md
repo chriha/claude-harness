@@ -23,11 +23,11 @@ Paths: `<repo>` is the main checkout (absolute), `<wt>` is `<repo>/.user/worktre
 **Context is the budget.** Everything the orchestrator reads stays in its context until the run ends, so it **only routes**: it
 hands out ticket ids, spawns sub-agents, and passes short status lines between them.
 
-| Agent | Model | Does | Returns |
+| Agent (`subagent_type`) | Model | Does | Returns |
 |-------|-------|------|---------|
-| **triager** | haiku | Step 1: select, gate, needs-info, overlap, chains | the plan block |
-| **implementer** | sonnet / opus (per triage row) | Step 2: gate, worktree, code, commits, push, PR, tracker write-back — or a plan | one line |
-| **verifier** | haiku | Step 3: verify one finding, file a triage ticket if real | one line |
+| **triager** (`harness:triager`, no Edit/Write) | haiku | Step 1: select, gate, needs-info, overlap, chains | the plan block |
+| **implementer** (`harness:implementer`) | sonnet / opus (per triage row) | Step 2: gate, worktree, code, commits, push, PR, tracker write-back — or a plan | one line |
+| **verifier** (`harness:verifier`, no Edit/Write) | haiku | Step 3: verify one finding, file a triage ticket if real | one line |
 
 Briefs: run `harness-resolve briefs/<role>.md` once per role (`triager`, `implementer`, `verifier`) and use the absolute paths it
 prints (a project override wins automatically). Shared: `tickets.md`, `git-rules.md` beside them.
@@ -39,7 +39,9 @@ Orchestrator rules:
   block from your brief — no preamble, no recap."*
 - **Don't read or paste the brief files.** A prompt holds only the concrete values the step lists and the line *"Read and follow
   `<abs path of the brief>`"*.
-- All sub-agents use `subagent_type: "general-purpose"` and `run_in_background: true`; wait for notifications, don't poll.
+- Sub-agents use the plugin agent of their role (`subagent_type: "harness:triager"` / `"harness:implementer"` /
+  `"harness:verifier"`), never `general-purpose`, and `run_in_background: true`; wait for notifications, don't poll. The agent type
+  is what the `harness-guard` hook keys on, and it strips Edit/Write from the read-only roles.
 
 Argument (optional):
 - **Ticket ids** (e.g. `/harness:work 812 815`; `#812` works too) → exactly those, in parallel, skipping the assignee filter

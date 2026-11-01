@@ -1,7 +1,7 @@
 # Harness conventions (read this before writing or editing any skill, brief or script)
 
 ## Layers — project always wins
-1. **Plugin defaults** (this dir): `skills/`, `briefs/`, `adapters/`, `bin/`, `packs/`, `templates/`.
+1. **Plugin defaults** (this dir): `skills/`, `briefs/`, `adapters/`, `bin/`, `packs/`, `templates/`, `agents/`, `hooks/` (the last two are not overridable).
 2. **Project config** `<repo>/.claude/harness.md` — facts about the project (commands, triggers, forge, tracker). Created once by `/harness:init`; owned by the project.
 3. **Project overrides** `<repo>/.claude/harness/<same relative path as in the plugin>` — a file here **replaces** the plugin file of the same path (e.g. `briefs/implementer.md`, `briefs/review-criteria.md`, `adapters/github.md`). Nothing is merged; copy the default and edit it only when config is not enough.
 
@@ -29,6 +29,24 @@ read-ticket, list-tickets, list-triage, edit-description-section, comment, add/r
 
 ## Paths
 `<repo>` main checkout (absolute) · `<wt>` = `<repo>/.user/worktrees/issue-<id>` · `<report>` = `<repo>/.user/reports/issue-<id>.md` · `.user/` is gitignored (init ensures it).
+
+## Hard rules are enforced in code
+A brief states a rule; a hard rule (one that must never be broken) also gets a check, so a violating call is refused, not trusted
+not to happen:
+- **`hooks/hooks.json` → `bin/harness-guard`** (PreToolUse on Bash/Edit/Write/MultiEdit/NotebookEdit). Scope: calls from a
+  `harness:*` agent (`agent_type` in the hook input; Claude Code sets it for sub-agent calls only) or targeting/running under
+  `<repo>/.user/worktrees/`; everything else passes untouched. Refuses force-push (any flag form, `+refspec`), `gh pr merge|ready`,
+  `gh pr review --approve`, `git commit --no-verify|-n`, Edit/Write on lockfiles and `go.mod`/`go.sum`, writes under
+  `.user/worktrees/_main`. Each deny reason names the rule and its brief — keep them in step when a brief changes. Text matching,
+  not a sandbox. Tests: `tests/run.sh`.
+- **Plugin agents `agents/{triager,implementer,verifier}.md`** — `/harness:work` spawns `harness:<role>`, never `general-purpose`.
+  The read-only roles use `disallowedTools: Edit, Write, MultiEdit, NotebookEdit` (not `tools:`, so MCP tools stay); they keep Bash
+  for tracker writes and focused test runs. The agent body only points at the brief — the brief (resolved, overridable) is the
+  source of truth.
+- **Settings `deny`** in `templates/settings.base.json` — backstop for never force-push / merge / mark ready; `/harness:init`
+  unions it into `.claude/settings.json`, `/harness:doctor` flags missing entries. It applies to interactive sessions too, and
+  prefix patterns can't catch combined flags (`-uf`) — the guard does.
+- A new hard rule → add it to the brief **and** to `harness-guard` with a test (and to `deny` when a permission pattern can express it).
 
 ## Style
 Terse imperative briefs, no prose padding. Orchestrators stay thin (route only). Sub-agent final reply = a single RESULT block/line defined in its brief.
