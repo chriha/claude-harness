@@ -176,4 +176,14 @@ work="$bin/../skills/work/SKILL.md"
 grep -q 'subagent_type: "general-purpose"' "$work" && fail "work skill still spawns general-purpose"
 for a in triager implementer verifier; do grep -q "harness:$a" "$work" || fail "work skill does not spawn harness:$a"; done
 
+# --- settings deny backstop (#15): force-push variants and merge/ready in the template; init merges, doctor checks
+base="$bin/../templates/settings.base.json"
+for d in 'Bash(git push --force:*)' 'Bash(git push -f:*)' 'Bash(git push --force-with-lease:*)' 'Bash(git push * --force*)' \
+    'Bash(git push * -f*)' 'Bash(gh pr merge:*)' 'Bash(gh pr ready:*)'; do
+    jq -e --arg d "$d" '.permissions.deny | index($d)' "$base" >/dev/null || fail "settings.base.json deny lacks $d"
+done
+jq -e '[.permissions.deny[] | test("^[A-Za-z]+\\(.+\\)$")] | all' "$base" >/dev/null || fail "invalid deny entry syntax"
+grep -q '`deny`' "$bin/../skills/init/SKILL.md" || fail "init step 5 does not merge deny"
+grep -q 'missing deny' "$bin/../skills/doctor/SKILL.md" || fail "doctor does not flag missing deny entries"
+
 echo "ok"

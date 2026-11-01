@@ -28,8 +28,10 @@ already owns without asking. Plugin root (read-only source): `${CLAUDE_PLUGIN_RO
    (`chmod +x`; tell me to run `git config core.hooksPath .githooks` / the pack's `setup-hooks.sh`), **only files that don't exist**. Existing
    file that differs → list it, don't touch. These copies are now project-owned; `/harness:doctor` shows drift.
 5. **Permissions:** merge `templates/settings.base.json` + `packs/<stack>/settings.json` + the adapter's allow-list fragment into
-   `.claude/settings.json` (create if missing; union the `allow` arrays; drop entries that are not valid `Tool(pattern)` syntax and
-   tell me which). Show the resulting diff before writing.
+   `.claude/settings.json` (create if missing; union the `allow` arrays and the `deny` arrays the same way — never drop a template
+   `deny` entry, and if a project `allow` entry is also in `deny`, `deny` wins: tell me; drop entries that are not valid
+   `Tool(pattern)` syntax and tell me which). The `deny` list is the backstop for "agents never force-push, merge or mark ready"
+   and also applies to interactive sessions. Show the resulting diff before writing.
 6. **Repo hygiene:** `.gitignore` gets `.user/` when `git check-ignore .user` says it isn't ignored. No `CLAUDE.md` → write one from
    `templates/CLAUDE.md` filled with what you detected (non-Laravel only; Laravel → put it in `.ai/guidelines/` and say so). Existing
    `CLAUDE.md` > ~250 lines → suggest splitting stack rules into `.claude/rules/` (list candidates, don't do it).

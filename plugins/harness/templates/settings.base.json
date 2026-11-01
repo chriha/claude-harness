@@ -13,6 +13,15 @@
       "Bash(harness-config:*)",
       "Bash(harness-candidates:*)",
       "mcp__codegraph__codegraph_explore"
+    ],
+    "deny": [
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(git push --force-with-lease:*)",
+      "Bash(git push * --force*)",
+      "Bash(git push * -f*)",
+      "Bash(gh pr merge:*)",
+      "Bash(gh pr ready:*)"
     ]
   }
 }

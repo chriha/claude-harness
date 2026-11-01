@@ -43,7 +43,10 @@ not to happen:
   The read-only roles use `disallowedTools: Edit, Write, MultiEdit, NotebookEdit` (not `tools:`, so MCP tools stay); they keep Bash
   for tracker writes and focused test runs. The agent body only points at the brief — the brief (resolved, overridable) is the
   source of truth.
-- A new hard rule → add it to the brief **and** to `harness-guard` with a test.
+- **Settings `deny`** in `templates/settings.base.json` — backstop for never force-push / merge / mark ready; `/harness:init`
+  unions it into `.claude/settings.json`, `/harness:doctor` flags missing entries. It applies to interactive sessions too, and
+  prefix patterns can't catch combined flags (`-uf`) — the guard does.
+- A new hard rule → add it to the brief **and** to `harness-guard` with a test (and to `deny` when a permission pattern can express it).
 
 ## Style
 Terse imperative briefs, no prose padding. Orchestrators stay thin (route only). Sub-agent final reply = a single RESULT block/line defined in its brief.
