@@ -50,7 +50,7 @@ not to happen:
 - A new hard rule → add it to the brief **and** to `harness-guard` with a test (and to `deny` when a permission pattern can express it).
 
 ## Implementer models and consults
-Target contract; `harness-candidates`, the triager, `/harness:work` and the implementer brief adopt it in #34's later slices.
+`harness-candidates`, the triager and `/harness:work` follow it; the implementer brief adopts it in #34's slice 3.
 The implementer session runs on **sonnet** and is the only agent that writes code. `implementer_model: opus` in harness.md
 § Models opts a project in to a whole-session opus implementer (default `sonnet`; nothing else picks opus for the session — not
 plan-approved rows, not the triager). The session calls short-lived consult sub-agents; each prompt carries the ticket, the
@@ -63,7 +63,8 @@ specific question, the relevant findings and the diff — never the session tran
   1. **Gate** — a plan-first trigger is uncertain → replies `just-solve` | `plan` | `needs-info` + one line why.
   2. **Plan** — writes the `## Plan` block.
   3. **Stuck fix** — after the 2nd failed attempt of the 3-attempt fix budget → a diagnosis from the failing output and the diff.
-     The `checks-red` retry respawns the implementer on opus only when this consult already ran.
+     The `checks-red` retry respawns the implementer on opus only when this consult already ran (its RESULT carries
+     `· consult: stuck-fix` after the class).
   4. **Sign-off** — replaces the per-finding validators of the review step: gets both reviewers' merged findings and the diff,
      drops false positives, adds misses, and does one short re-check after the fix commit. Opus when changed lines > 200 (the
      review step's count after `exclude_from_size`, same cutoff as the `/code-review` level) or the ticket is plan-approved;
