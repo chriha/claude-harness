@@ -50,7 +50,7 @@ not to happen:
 - A new hard rule → add it to the brief **and** to `harness-guard` with a test (and to `deny` when a permission pattern can express it).
 
 ## Implementer models and consults
-`harness-candidates`, the triager and `/harness:work` follow it; the implementer brief adopts it in #34's slice 3.
+`harness-candidates`, the triager, `/harness:work`, the implementer brief (§ Consults) and `harness-retro` follow it.
 The implementer session runs on **sonnet** and is the only agent that writes code. `implementer_model: opus` in harness.md
 § Models opts a project in to a whole-session opus implementer (default `sonnet`; nothing else picks opus for the session — not
 plan-approved rows, not the triager). The session calls short-lived consult sub-agents; each prompt carries the ticket, the

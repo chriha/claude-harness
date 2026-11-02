@@ -44,8 +44,11 @@ the reports in `<repo>/.user/reports/` and the run logs in `<repo>/.user/runs/` 
    `test-quality`, `code-review`, `intent`) the findings and the fixed findings. Untagged old-format lines are skipped.
 9. **Red-check exits** — count of the `red-check: exit <n>` lines in the reports' `## Tests`, per exit code (0–5).
 10. **Failure classes** — counts per class once failure classes are recorded in reports/run logs (ticket #11); until then `n/a`.
+11. **Consults** — from each report's `## Review` lines `- consult: <role> · <model> · <trigger> · <n>k tokens`: the count and the
+    summed tokens per model (`haiku`, `sonnet`, `opus`), written `n/Nk` each, plus the count of `stuck-fix` consults. Reports
+    without consult lines (older format) are skipped.
 
-No archive/report data in the window → KPIs 8–10 are `n/a`, never `0`. A source with reports but no tagged lines is `n/a` too.
+No archive/report data in the window → KPIs 8–11 are `n/a`, never `0`. A source with reports but no tagged lines is `n/a` too.
 
 A KPI with no data in the window is `n/a`, never `0`.
 
@@ -57,7 +60,7 @@ A KPI with no data in the window is `n/a`, never `0`.
 3. Append one row, keeping the rest of the document intact:
 
 ```
-| date | window | agent PRs | first-pass | threads/PR | lead time p50/p90 (h) | done/partial/blocked/planned/needs-info | finding precision | findings/fixed rules | findings/fixed test-quality | findings/fixed code-review | findings/fixed intent | red-check exits (0/1/2/3/4/5) | failure classes | <ratchet…> | post-merge breakage |
+| date | window | agent PRs | first-pass | threads/PR | lead time p50/p90 (h) | done/partial/blocked/planned/needs-info | finding precision | findings/fixed rules | findings/fixed test-quality | findings/fixed code-review | findings/fixed intent | red-check exits (0/1/2/3/4/5) | failure classes | consults haiku/sonnet/opus (n/Nk) · stuck-fix | <ratchet…> | post-merge breakage |
 ```
 (omit the breakage column unless `sentry: true`; older rows without the guardrail columns read `n/a` for them — add the columns to the header when missing)
 
