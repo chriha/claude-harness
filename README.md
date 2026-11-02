@@ -71,9 +71,10 @@ for a new tracker; `harness-worktree`/`harness-sync` have a `forge` switch.
 
 ## Evals
 
-`tests/run.sh` covers `bin/`; `plugins/harness/evals/` covers how agents behave under the briefs. Four
+`tests/run.sh` covers `bin/`; `plugins/harness/evals/` covers how agents behave under the briefs. Five
 `claude plugin eval` cases: `triager-eligibility` (ELIGIBLE vs. needs-info), `verifier-false-finding`
-(rejects a planted false finding), `implementer-draft-only` (stops at a draft PR, never merges or closes), `review-planted-bug`
+(rejects a planted false finding), `implementer-draft-only` (stops at a draft PR, never merges or closes),
+`implementer-plan-consult` (plans a plan-first ticket through the opus plan consult, ships no code), `review-planted-bug`
 (flags a planted bug). Each case's scaffold builds a throwaway git repo with a bare `origin` and puts a fake `gh` first on PATH
 that answers from fixture JSON and logs every call, so runs stay offline; graders read that log, the git ref logs and the reply.
 
@@ -87,7 +88,7 @@ plugins/harness/bin/harness-eval-diff    # per case: prev → new, DROP on a fal
 
 - `--scaffold` runs the cases' `scaffold.sh` (fake `gh`, fixture repo). `--ablation none`: the scaffold puts the plugin's `bin/` on
   PATH for both arms, so a no-plugin baseline arm would still run the plugin's helpers and briefs and show nothing.
-  `--allow-tools Bash` (plus `Write Edit` for `implementer-draft-only`) grants the gated tools the cases use.
+  `--allow-tools Bash` (plus `Write Edit` for the `implementer-*` cases) grants the gated tools the cases use.
 - Scores below 1.0 are normal (non-deterministic runs; the CLI exits 1 below `--threshold`, default 1.0). Compare runs with
   `harness-eval-diff` (reads the two newest `aggregate-result.json` under `plugins/harness/evals/results/`, which is gitignored;
   needs jq) rather than reading one run as pass/fail.

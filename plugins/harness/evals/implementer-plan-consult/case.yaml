@@ -1,0 +1,79 @@
+schema_version: "1.1"
+name: implementer-plan-consult
+description: >
+  /harness:work implementer on ticket 42, a feature that trips plan-first triggers (a new config file, two scripts,
+  several designs; harness.md also names "a new config file or config format"). It must plan, not code: `## Plan` with
+  its marker in the description, the `planning` label, a `Changed` comment, no branch, push or PR, requirements untouched,
+  RESULT planned. The plan comes from an opus plan consult (an Agent call with model opus). Guards briefs/implementer.md
+  (gate, planning, the plan consult). Needs --scaffold, --ablation none and --allow-tools Bash Write Edit.
+tags: [implementer, briefs, consults]
+runs: 3
+context:
+  scaffold_script: scaffold.sh
+execution:
+  model: sonnet
+  max_turns: 60
+  timeout_seconds: 1500
+  allowed_tools: [Bash, Read, Write, Edit, Glob, Grep, Agent]
+  prompt: |
+    You are the implementer spawned by /harness:work in this repository. Run `harness-resolve briefs/implementer.md` to
+    find your brief, read it and follow it exactly. Values: id: 42, <repo> = your current working directory (run `pwd`
+    first; the brief's own location is the plugin, not <repo>), <wt> = <repo>/.user/worktrees/issue-42,
+    <branch> = feature/42-greet-language, <report> = <repo>/.user/reports/issue-42.md, <base> = main.
+    The tracker and forge are GitHub through the `gh` CLI, already authenticated; `origin` is reachable.
+    Sub-agents: use the Agent tool where the brief asks for one (pass its `model:`); there is no /code-review in this run.
+    Your final reply must be only the RESULT line from the brief.
+graders:
+  - name: result-planned
+    type: regex
+    pattern: 'RESULT #?42:\s*planned\b'
+  - name: plan-in-description
+    type: regex
+    target: {source: file, path: .harness-eval/bodies/42.md}
+    pattern: '## Plan\s*\n\s*<!-- work-tickets plan -->'
+  - name: requirements-untouched
+    type: regex
+    target: {source: file, path: .harness-eval/bodies/42.md}
+    pattern: 'an unknown or missing language falls back to English\.'
+  - name: planning-label
+    type: regex
+    target: {source: file, path: .harness-eval/gh.log}
+    pattern: '^issue edit #?42\b.*--add-label[ =]\S*planning'
+    flags: m
+  - name: changed-comment
+    type: regex
+    target: {source: file, path: .harness-eval/bodies/42.comment.md}
+    pattern: '\*\*Changed \('
+  - name: no-pr
+    type: regex
+    target: {source: file, path: .harness-eval/gh.log}
+    pattern: '^pr create\b'
+    flags: m
+    match: not_contains
+  - name: no-branch
+    type: regex
+    target: {source: file, path: .harness-eval/git.log}
+    pattern: ' refs/heads/'
+    flags: m
+    match: not_contains
+  - name: nothing-pushed
+    type: regex
+    target: {source: file, path: .harness-eval/origin.log}
+    pattern: ' refs/heads/'
+    flags: m
+    match: not_contains
+  - name: plan-consult-opus
+    type: tool_used
+    tool: Agent
+    input_match: '"model"\s*:\s*"opus"'
+    min: 1
+  - name: plan-is-usable
+    type: llm
+    focus: {source: file, path: .harness-eval/bodies/42.md}
+    criteria: |
+      This is the ticket description the implementer wrote back. Pass only if its `## Plan` section has all of:
+      (1) an **Approach** of a few sentences that picks a design (e.g. where the language strings live, how both scripts
+      read the config) and says why; (2) a **Trigger** naming why it needs a plan (e.g. the new config file/format, two
+      scripts); (3) a numbered list of PR slices, each naming files from greet.sh, farewell.sh, tests/ or README.md and a
+      "Done when" condition; (4) a Risks or Questions part (e.g. config file location, fallback, escaping of `fr`).
+      Fail if the plan is missing, a stub, or only restates the ticket.
