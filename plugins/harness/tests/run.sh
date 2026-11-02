@@ -362,8 +362,8 @@ cd "$tmp/run8"
 eq "$(git -C .user/worktrees/_main rev-parse HEAD)" "$(git rev-parse origin/main)" "plan-consult: _main at origin/main"
 eq "$(git status --porcelain)/$(wc -c < .harness-eval/git.log | tr -d ' ')/$(wc -c < .harness-eval/origin.log | tr -d ' ')" \
     '/0/0' "plan-consult: clean tree, empty ref logs"
-eq "$(sed -n '/^## Plan-first triggers/{n;p;}' .claude/harness.md)" \
-    "- A new config file or config format (users' files must keep working across releases)." "plan-consult: harness.md names the trigger"
+eq "$("$bin/harness-config" section 'Plan-first triggers' | grep -c .)" '1' \
+    "plan-consult: harness-config reads the overlay's trigger, not _shared's empty section"
 p="$(. .harness-eval/path.sh; echo "$PATH")"
 eq "$(PATH="$p" gh issue view 42 --json labels,comments --jq '[.labels[].name, (.comments | length)] | join("/")')" 'feature/0' \
     "plan-consult: ticket 42 unlabelled for planning, no comments"

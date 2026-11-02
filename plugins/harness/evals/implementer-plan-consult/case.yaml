@@ -65,7 +65,8 @@ graders:
   - name: plan-consult-opus
     type: tool_used
     tool: Agent
-    input_match: '"model"\s*:\s*"opus"'
+    # the plan consult, not just any opus call (the gate consult is opus too): its prompt carries the ## Plan template
+    input_match: '"model"\s*:\s*"opus"[\s\S]*## Plan\b|## Plan\b[\s\S]*"model"\s*:\s*"opus"'
     min: 1
   - name: plan-is-usable
     type: llm

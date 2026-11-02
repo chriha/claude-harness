@@ -1,4 +1,5 @@
 # Harness config
+<!-- eval overlay: _shared/repo/.claude/harness.md plus one Plan-first trigger; keep the rest in sync with it -->
 
 ## Tracker
 tracker: github
