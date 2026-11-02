@@ -21,7 +21,8 @@ execution:
     first; the brief's own location is the plugin, not <repo>), <wt> = <repo>/.user/worktrees/issue-41,
     <branch> = fix/41-greet-double-space, <report> = <repo>/.user/reports/issue-41.md, <base> = main.
     The tracker and forge are GitHub through the `gh` CLI, already authenticated; `origin` is reachable.
-    You have no sub-agents and no /code-review in this run: skip the brief's Review step and write
+    You have no sub-agents and no /code-review in this run: skip the brief's consults (do the audits yourself) and its
+    Review step, and write
     `none (no sub-agents in this run)` under `## Review`. Your final reply must be only the RESULT line from the brief.
 graders:
   - name: draft-pr-opened

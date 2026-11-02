@@ -9,6 +9,35 @@ sections (Commands, Plan-first triggers, Self-check, Test conventions, Never) **
 - **Read the ticket:** `read-ticket` (with comments) and `blockers-read` — the description (current state, incl. `## Plan` when
   plan-approved) and comments. An old-format ticket is folded into the description on your first write (`tickets.md`, "Fold on touch").
 
+## Consults (CONVENTIONS.md § Implementer models and consults)
+
+You are the only agent that writes code. At the fixed points below you spawn a short-lived consult: a fresh sub-agent (not a
+fork) with an explicit `model:`, read-only (no edits, no commits, no tracker writes). Its prompt carries the ticket (description
++ acceptance criteria), the one question, the relevant findings (`file:line`) and the diff or output it names — never your
+transcript — and ends with the reply format below; it replies with only that. Never consult outside these points, never "when it
+feels big". Your session already runs on opus (harness.md `implementer_model: opus`) → answer the opus consults yourself, no spawn.
+Note each consult's role, model, trigger and token use for `## Review`.
+
+- **Haiku auditors** (`model: "haiku"`) — mechanical lists, never conclusions; verify every hit yourself before acting on it.
+  - **Lookup** (any time, instead of reading many files yourself): every caller of a symbol, or the sibling files that follow a
+    pattern → `- <file>:<line> — <the call/sibling>` per hit, or `none`.
+  - **Audits** (before each commit, all three in one message, each gets the staged diff + harness.md § Self-check):
+    *self-check* — calls to functions/methods/types the codebase doesn't define (grep each), helpers duplicating an existing one,
+    swallowed errors or catch-alls, unquoted/unvalidated shell or SQL strings, harness.md § Self-check items; *callers* — callers of
+    every changed function signature not updated in the diff; *scope* — files the ticket or plan slice doesn't name, and the changed
+    lines (as in Review, below) against the ~400 limit. Reply: `- <file>:<line> — <rule> — <what>` per hit, or `none`.
+- **Opus advisor** (`model: "opus"`), four triggers only:
+  1. **Gate** — a plan-first criterion is uncertain (you can't tell from the code whether it holds). Gets: the ticket, the
+     criterion in doubt, your exploration findings, harness.md § Plan-first triggers. Reply: `just-solve | plan | needs-info — <one
+     line why>`. Follow it.
+  2. **Plan** — always when you plan. Gets: the ticket, your exploration findings, harness.md § Plan-first triggers and the
+     `## Plan` template (Planning, below). Reply: only the filled `## Plan` block. You write it into the ticket.
+  3. **Stuck fix** — a check is still red after the 2nd failed attempt of the fix budget. Gets: the check command, its failing
+     output (trimmed to the failure), `git -C <wt> diff origin/<base>` (incl. uncommitted), what attempts 1–2 changed. Reply: ≤ 10
+     lines — the cause with `file:line`, then the one fix to try. Attempt 3 applies it.
+  4. **Sign-off** — the review step (below). Opus when the changed-line count > 200 or `plan approved`; otherwise sonnet
+     (`model: "sonnet"`).
+
 ## Gate first — before any setup or code change
 
 Explore read-only. Locate code with CodeGraph when `<repo>/.codegraph/` exists, otherwise grep/read; read files in `<wt>` if it
@@ -25,6 +54,7 @@ exists (continuing), otherwise `<base-wt>` when stacked, otherwise `<repo>/.user
    undo (schema, data backfill, API contract, queue/payload shape, persisted formats, config formats); multiple real designs
    (new module vs. existing, sync vs. async); needs sequencing (several PRs, flags, deploy order, deprecation period); money,
    auth or data loss involved; **plus every trigger in harness.md § Plan-first triggers** → **planning** (below). No worktree, no branch.
+   A criterion you can't settle from the code → the **gate** consult decides between 2, 3 and needs-info.
 4. **Plan approved** skips 2–3: implement the plan's next unshipped PR slice. If the plan turns out wrong in a way that needs a
    decision → **needs-info**.
 
@@ -62,33 +92,41 @@ It fetches `origin/<base>`, adds the worktree (new branch from `origin/<base>`, 
     and the real code in later commits. Run `harness-red-check <wt> <base> <stub-commit sha>`: the red run keeps the stubs and drops
     only what came after them. Name the stub commit in `## Tests`. A stub that already makes the tests pass exits 1.
 - **Checks** — same as CI, green before every commit: harness.md § Commands `test`, `static`, `format`, `build` (empty = skip).
-  **Fix budget: 3 attempts per failing check** (a fix + re-run is one attempt); then stop, set `partial` (class `checks-red`) and
-  list the rest under `## Open`.
+  **Fix budget: 3 attempts per failing check** (a fix + re-run is one attempt); after the 2nd failed attempt run the **stuck fix**
+  consult and make attempt 3 from its diagnosis; still red → stop, set `partial` (class `checks-red`, plus `· consult: stuck-fix`
+  in the RESULT when the consult ran) and list the rest under `## Open`.
   Fix new findings in the code — no suppression comments, no skipped tests, no baseline/exclusion entries, no widened types to
   silence a tool. A baseline entry your fix resolved → delete it. Only format the files you changed.
 - **Self-check** before committing: no invented functions or methods (verify they exist), no swallowed errors or catch-alls added
   to silence one, no helper duplicating an existing one (grep first), no unquoted/unvalidated shell or SQL strings,
-  plus harness.md § Self-check.
+  plus harness.md § Self-check. The three haiku **audits** (Consults) run over the staged diff; check and fix each hit.
 - **Commits:** per `git-rules.md`. Body: one or two lines on what and why, then `Refs <id>` and the Co-Authored-By trailer.
   One commit by default; each commit leaves tests green.
-- **Review (once, before the push):** with every commit in and checks green, spawn one fresh sonnet sub-agent (a new agent, not a
-  fork). Its prompt carries the ticket's acceptance criteria, the full `git -C <wt> diff origin/<base>...HEAD` and the commit log
-  as author intent, and tells it: read-only (no edits, no commits), apply `harness-resolve briefs/review-criteria.md` (rules
-  compliance + test quality, signal threshold, false-positive list), validate each candidate with a separate sonnet sub-agent per its
-  "Validation", and reply with only validated findings, one per line as `- <file>:<line> — <problem; quote the rule if any> — <fix>`,
-  or `none`.
+- **Review (once, before the push):** with every commit in and checks green, count the **changed lines** = insertions + deletions
+  of `git -C <wt> diff --shortstat origin/<base>...HEAD -- . <tests, lockfiles, generated, exclude_from_size as
+  ':(exclude,glob)…'>`. Then spawn one fresh sonnet sub-agent (a new agent, not a fork). Its prompt carries the ticket's acceptance
+  criteria, the full `git -C <wt> diff origin/<base>...HEAD` and the commit log as author intent, and tells it: read-only (no
+  edits, no commits), apply `harness-resolve briefs/review-criteria.md` (rules compliance + test quality, signal threshold,
+  false-positive list) **without** its "Validation" step (the sign-off replaces it), and reply with its candidates, one per line as
+  `- [rules|test-quality] <file>:<line> — <problem; quote the rule if any> — <fix>`, or `none`.
   - **Bug review, in parallel:** in the same message spawn a second fresh sonnet sub-agent that runs `/code-review <level> <branch>`
-    in `<wt>` (read-only, no `--fix`/`--comment`) and replies in the same line format, or `none`. Always pass `<level>`. Level from
-    changed lines = insertions + deletions of `git -C <wt> diff --shortstat origin/<base>...HEAD -- . <tests, lockfiles, generated,
-    exclude_from_size as ':(exclude,glob)…'>`: **≤ 200 → `low`, > 200 → `medium`**. Never `high` or above.
-  - Merge both reviewers' findings, drop duplicates (same file:line or problem) before fixing.
-  - Fix each in-scope finding in one extra commit, then re-run the checks. An out-of-scope finding goes under `## Findings`.
-  - No second review round. If the fixes need review, or the re-run is still red after the 3-attempt budget, list the remaining
-    findings under `## Open` and set the status to `partial`.
-  - Record in the report's `## Review`: one line per finding, `- [<source>] <file>:<line> — fixed | out of scope | open`, where
-    `<source>` is `rules`, `test-quality` (both from the review-criteria reviewer), `code-review` or `intent` (a finding that the
-    diff misses the ticket's acceptance criteria); `none` when there are no findings. Then the `/code-review` level, changed-line
-    count and each review sub-agent's token use. `harness-retro` counts these tags.
+    in `<wt>` (read-only, no `--fix`/`--comment`) and replies in the same line format with source `code-review`, or `none`. Always
+    pass `<level>`: **changed lines ≤ 200 → `low`, > 200 → `medium`**. Never `high` or above.
+  - Merge both reviewers' findings, drop duplicates (same file:line or problem).
+  - **Sign-off** consult (opus when changed lines > 200 or `plan approved`, else sonnet). Gets: the acceptance criteria, the diff,
+    the commit log, the merged findings. It drops false positives (review-criteria "False positives"), adds misses it can show
+    (source `intent` when the diff misses an acceptance criterion) and replies: `- keep|drop <finding> — <one line why>` per
+    finding, then `- add [<source>] <file>:<line> — <problem> — <fix>` per miss, or `none`.
+  - Fix each kept or added in-scope finding in one extra commit, then re-run the checks. An out-of-scope finding goes under
+    `## Findings`.
+  - **Re-check** (only when there was a fix commit): the same sign-off model once more, with the kept/added findings and
+    `git -C <wt> show <fix commit>` → `ok`, or the findings still open, one per line. No further rounds: a finding still open, or
+    a re-run still red after the 3-attempt budget, goes under `## Open` and the status is `partial`.
+  - Record in the report's `## Review`: one line per finding the sign-off kept or added, `- [<source>] <file>:<line> — fixed |
+    out of scope | open`, where `<source>` is `rules`, `test-quality` (both from the review-criteria reviewer), `code-review` or
+    `intent`; `none` when there are none. Then the `/code-review` level, changed-line count and each review sub-agent's token use,
+    and one line per consult of this run: `- consult: <auditor|advisor> · <haiku|sonnet|opus> · <lookup|audit|gate|plan|stuck-fix|
+    sign-off|re-check> · <n>k tokens`. `harness-retro` counts these tags and consult lines.
 - **Verify before the PR (unless `no-verify` or harness.md has no `## Verify` section):** after checks are green and before pushing,
   follow `harness-resolve skills/verify/SKILL.md`'s procedure for this ticket on `<wt>` (pass `--allow-external-apis` only when your
   prompt says `allow-external-apis`; never ask the user — unattended: no fix loop, no tickets). Failed / aborted / skipped steps
@@ -107,6 +145,7 @@ It fetches `origin/<base>`, adds the worktree (new branch from `origin/<base>`, 
 
 ## Planning — no code changes, commits, push or PR
 
+The **plan** consult (opus) drafts the block from your exploration findings; you check its file paths exist and write it in.
 Write this block into the description as `## Plan` (editing rules in `tickets.md`; marker inside it), set `## Status` (planned —
 awaiting approval: answer the questions, then remove the `planning` label), post a `Changed` comment, then `add-label planning`:
 ```
@@ -142,7 +181,7 @@ done | partial | blocked | planned | needs-info — for partial/blocked add `cla
 ## Tests
 <commands run + result; for bug fixes, the red run before the fix; static/format results>
 ## Review
-<`- [rules|test-quality|code-review|intent] file:line — fixed | out of scope | open` per finding, or "none"; code-review level, changed lines, review sub-agent tokens>
+<`- [rules|test-quality|code-review|intent] file:line — fixed | out of scope | open` per finding, or "none"; code-review level, changed lines, review sub-agent tokens; `- consult: <role> · <model> · <trigger> · <n>k tokens` per consult>
 ## Verify
 <passed|failed|aborted|skipped + one line each, or "not run">
 ## Open
@@ -166,4 +205,5 @@ done | partial | blocked | planned | needs-info — for partial/blocked add `cla
 
 **Result** — your final reply must be only this line:
 `RESULT <id>: <done|partial|blocked|planned|needs-info> · PR <url|none> · commits <n> · findings: <short title>; <short title>; … (or "none")`
-For `partial`/`blocked` insert `· class: <class>` right after the status.
+For `partial`/`blocked` insert `· class: <class>` right after the status; for `checks-red` after a stuck-fix consult, follow it
+with `· consult: stuck-fix` (`/harness:work` retries on opus only then).
