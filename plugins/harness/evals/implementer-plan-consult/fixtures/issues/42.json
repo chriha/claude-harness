@@ -1,0 +1,19 @@
+{
+  "number": 42,
+  "title": "Greet and say goodbye in the user's language",
+  "body": "## Status\nReady for /harness:work.\n\n## Problem\n`greet.sh` and `farewell.sh` only speak English (`greet.sh:3`, `farewell.sh:4`). Users in Germany and France want `Hallo, Ada!` / `Bonjour, Ada !` and the matching goodbyes. There is no way to pick a language today, and no config file at all.\n\n## Acceptance criteria\n- [ ] A user picks the language once, in a new config file `~/.config/greet/config` (e.g. `lang=de`); both scripts read it.\n- [ ] `en`, `de` and `fr` are supported for both scripts; an unknown or missing language falls back to English.\n- [ ] Existing output for English users does not change.\n- [ ] `tests/greet.sh` and `tests/farewell.sh` cover each language and the fallback.\n\n## Touches\ngreet.sh\nfarewell.sh\ntests/greet.sh\ntests/farewell.sh\nREADME.md",
+  "state": "OPEN",
+  "createdAt": "2026-10-02T09:00:00Z",
+  "labels": [
+    {
+      "name": "feature"
+    }
+  ],
+  "assignees": [
+    {
+      "login": "eval-bot"
+    }
+  ],
+  "comments": [],
+  "url": "https://github.com/eval/fixture/issues/42"
+}

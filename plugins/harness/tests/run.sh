@@ -355,6 +355,20 @@ eq "$(PATH="$p" gh issue view 41 --json comments --jq '.comments | length')" '1'
 eq "$(PATH="$p" gh pr view 901 --json isDraft --jq .isDraft)" 'true' "implementer: the created PR reads back as draft"
 eq "$(bash greet.sh Ada)" 'Hello,  Ada!' "implementer: the planted bug stays planted"
 
+# implementer-plan-consult (#34): ticket 42 trips plan-first triggers, one of them named in the case's harness.md overlay
+mkdir -p "$tmp/run8"
+(cd "$tmp/run8" && HOME="$tmp/home" bash "$evals/implementer-plan-consult/scaffold.sh") || fail "plan-consult scaffold"
+cd "$tmp/run8"
+eq "$(git -C .user/worktrees/_main rev-parse HEAD)" "$(git rev-parse origin/main)" "plan-consult: _main at origin/main"
+eq "$(git status --porcelain)/$(wc -c < .harness-eval/git.log | tr -d ' ')/$(wc -c < .harness-eval/origin.log | tr -d ' ')" \
+    '/0/0' "plan-consult: clean tree, empty ref logs"
+eq "$("$bin/harness-config" section 'Plan-first triggers' | grep -c .)" '1' \
+    "plan-consult: harness-config reads the overlay's trigger, not _shared's empty section"
+p="$(. .harness-eval/path.sh; echo "$PATH")"
+eq "$(PATH="$p" gh issue view 42 --json labels,comments --jq '[.labels[].name, (.comments | length)] | join("/")')" 'feature/0' \
+    "plan-consult: ticket 42 unlabelled for planning, no comments"
+eq "$(PATH="$p" gh pr list --head feature/42-greet-language --json number --jq length)" '0' "plan-consult: no PR yet"
+
 # verifier-false-finding: _main + the source ticket's worktree + a report whose finding is false
 mkdir -p "$tmp/run5"
 (cd "$tmp/run5" && HOME="$tmp/home" bash "$evals/verifier-false-finding/scaffold.sh") || fail "verifier scaffold"
