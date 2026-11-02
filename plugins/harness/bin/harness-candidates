@@ -5,6 +5,7 @@ Usage: harness-candidates "[12>15 20 -37]"   (run inside the repo; needs an auth
        harness-candidates --self-test
 """
 import json
+import os
 import re
 import subprocess
 import sys
@@ -31,6 +32,15 @@ def _default_branch():
 
 
 DEFAULT_BRANCH = _default_branch()
+
+
+def implementer_model():
+    """harness.md § Models `implementer_model`: `opus` opts in to a whole-session opus implementer; anything else is sonnet."""
+    config = os.path.join(os.path.dirname(os.path.realpath(__file__)), "harness-config")
+    r = subprocess.run([config, "key", "implementer_model"], capture_output=True, text=True)
+    if r.returncode != 0:
+        fail(f"harness-config key implementer_model failed: {r.stderr.strip()}")
+    return "opus" if r.stdout.strip().lower() == "opus" else "sonnet"
 
 
 class GitHub:
@@ -231,7 +241,7 @@ def suggest_fix(id_, tickets, excluded):
     return None, "; ".join(errs), join_chain(workable) if workable else ""
 
 
-def make_plan(tickets, chains, excluded, argument_mode):
+def make_plan(tickets, chains, excluded, argument_mode, model="sonnet"):
     """Classify the tickets of the given chains. Every id in chains and every blocker must be in tickets."""
     skipped, skipped_order, kept, seen = {}, [], [], set()
     for chain in chains:
@@ -290,8 +300,7 @@ def make_plan(tickets, chains, excluded, argument_mode):
                 r["continues"] = t.open_pr.url
             elif previous_branch:
                 base = previous_branch
-            r.update({"class": "eligible", "branch": branch, "base": base,
-                      "model": "opus" if r["planApproved"] else "sonnet"})
+            r.update({"class": "eligible", "branch": branch, "base": base, "model": model})
             put(r)
             previous_branch = branch
         if len(chain) > 1:
@@ -340,7 +349,7 @@ def main(argv):
         tickets[id_] = gh.ticket(id_, me, open_prs)
         queue += [b.id for b in tickets[id_].blockers]
 
-    print(json.dumps(make_plan(tickets, chains, excluded, argument_mode), indent=2))
+    print(json.dumps(make_plan(tickets, chains, excluded, argument_mode, implementer_model()), indent=2))
 
 
 # --- self-test (port of plan_test.go) ---
@@ -401,6 +410,11 @@ class PlanTest(unittest.TestCase):
         plan = make_plan(tickets, [[1, 2]], [], True)
         self.assertEqual([r["id"] for r in plan["heads"]], [1])
         self.assertEqual([r["base"] for r in plan["eligible"]], ["fix/1-a"])
+
+    def test_model_is_the_project_setting_not_plan_approval(self):
+        tickets = {1: Ticket(1, has_plan=True), 2: Ticket(2)}
+        self.assertEqual([r["model"] for r in make_plan(tickets, [[1], [2]], [], False)["eligible"]], ["sonnet", "sonnet"])
+        self.assertEqual([r["model"] for r in make_plan(tickets, [[1], [2]], [], False, "opus")["eligible"]], ["opus", "opus"])
 
     def test_excluding_a_ticket_drops_rest_of_chain(self):
         tickets = {i: Ticket(i) for i in (1, 2, 3)}

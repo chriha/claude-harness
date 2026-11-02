@@ -26,7 +26,7 @@ hands out ticket ids, spawns sub-agents, and passes short status lines between t
 | Agent (`subagent_type`) | Model | Does | Returns |
 |-------|-------|------|---------|
 | **triager** (`harness:triager`, no Edit/Write) | haiku | Step 1: select, gate, needs-info, overlap, chains | the plan block |
-| **implementer** (`harness:implementer`) | sonnet / opus (per triage row) | Step 2: gate, worktree, code, commits, push, PR, tracker write-back — or a plan | one line |
+| **implementer** (`harness:implementer`) | sonnet (opus only with harness.md `implementer_model: opus`) + haiku audit / opus consult sub-agents | Step 2: gate, worktree, code, commits, push, PR, tracker write-back — or a plan | one line |
 | **verifier** (`harness:verifier`, no Edit/Write) | haiku | Step 3: verify one finding, file a triage ticket if real | one line |
 
 Briefs: run `harness-resolve briefs/<role>.md` once per role (`triager`, `implementer`, `verifier`) and use the absolute paths it
@@ -111,8 +111,10 @@ an unparsable one is `blocked · no-result`: report it, never retry it in this r
 Retry **once per ticket per run**, always with a changed condition:
 - `env/setup` → remove the worktree (`git -C <repo> worktree remove --force <wt>`; delete the branch only if nothing was pushed)
   and respawn the implementer so it recreates it.
-- `checks-red` on a **sonnet** row → respawn on `model: "opus"` in the same worktree.
-- every other class, `checks-red` already on opus, and a retry that also fails → report only.
+- `checks-red` on a **sonnet** row whose RESULT carries `· consult: stuck-fix` (the opus stuck-fix consult already ran and didn't
+  help) → respawn on `model: "opus"` in the same worktree.
+- every other class, `checks-red` without `consult: stuck-fix`, `checks-red` already on opus, and a retry that also fails →
+  report only.
 
 A retry is a start: it takes a slot and counts against `--budget` like any other (a retry that ends `done`/`partial` is one more
 PR-opening result). If the retry also fails, chains stop as usual. Note the retry in the ticket's Step 4 line

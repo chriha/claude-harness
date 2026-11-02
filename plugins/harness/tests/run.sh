@@ -274,6 +274,25 @@ rc=0; fgh repo delete x 2>/dev/null || rc=$?; eq "$rc" 1 "fake gh refuses unknow
 eq "$(sed -n 's/^issue edit 5 //p' "$tmp/ev/gh.log" | head -1)" "--add-label needs-info --body-file $tmp/ev/b.md" "fake gh logs calls"
 eq "$(tail -1 "$tmp/ev/gh.log")" 'repo delete x' "fake gh logs refused calls"
 
+# --- harness-candidates model (#34): sonnet unless harness.md § Models sets implementer_model: opus
+mkdir -p "$tmp/cand-ev/fixtures/issues" "$tmp/cand-bin"
+printf '{"number":7,"title":"planned","body":"## Plan\\nx","createdAt":"2026-01-01","state":"OPEN","labels":[],"assignees":[{"login":"eval-bot"}],"comments":[]}\n' \
+    > "$tmp/cand-ev/fixtures/issues/7.json"
+printf '#!/bin/sh\nHARNESS_EVAL_DIR="%s" exec bash "%s" "$@"\n' "$tmp/cand-ev" "$evals/_shared/fake-gh" > "$tmp/cand-bin/gh"
+chmod +x "$tmp/cand-bin/gh"
+cand_model() { # cand_model <harness.md body>: model of eligible ticket 7 (plan-approved)
+    rm -rf "$tmp/cand" "$tmp/cand.git"; repo "$tmp/cand" "$1"
+    (cd "$tmp/cand" && PATH="$tmp/cand-bin:$PATH" "$bin/harness-candidates" 7 | jq -r '[.eligible[] | .planApproved, .model] | join("/")')
+}
+eq "$(cand_model '## Tracker
+tracker: github')" 'true/sonnet' "plan-approved row without the key runs sonnet"
+eq "$(cand_model '## Models
+implementer_model: opus')" 'true/opus' "implementer_model: opus picks opus"
+eq "$(cand_model '## Models
+implementer_model: `Opus`   <!-- opt-in -->')" 'true/opus' "implementer_model is case-insensitive"
+eq "$(cand_model '## Models
+implementer_model: gpt')" 'true/sonnet' "unknown implementer_model falls back to sonnet"
+
 mkdir -p "$tmp/case/fixtures/issues" "$tmp/run" "$tmp/home" "$tmp/installed"
 cp "$tmp/ev/fixtures/issues/5.json" "$tmp/case/fixtures/issues/"
 printf '#!/bin/sh\n' > "$tmp/installed/harness-resolve"; chmod +x "$tmp/installed/harness-resolve"
